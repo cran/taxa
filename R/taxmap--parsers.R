@@ -132,7 +132,7 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
     stop(paste0('The mapping options must be named.'))
   }
   for (i in seq_len(length(datasets))) {
-    valid_mappings <- c("{{index}}", "{{name}}", "{{value}}")
+    valid_mappings <- c("{{index}}", "{{name}}", "{{value}}", NA)
     if (is.data.frame(datasets[[i]])) {
       valid_mappings <- c(valid_mappings, colnames(datasets[[i]]))
     }
@@ -163,7 +163,7 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
   } else if (is.data.frame(tax_data)) { # is a data.frame
     parsed_tax <- lapply(seq_len(nrow(tax_data)),
                          function(i) {
-                           class_source <- as.character(unlist(tax_data[i, class_cols]))
+                           class_source <- unlist(lapply(tax_data[i, class_cols], as.character))
                            unname(unlist(multi_sep_split(class_source,
                                                          fixed = !sep_is_regex,
                                                          split = class_sep)))
@@ -184,29 +184,51 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
   } else {
     stop("Unknown format for first input. Cannot parse taxonomic information.")
   }
+  
+  # Remove white space
+  parsed_tax <- lapply(parsed_tax, trimws)
 
   # Extract out any taxon info
-  taxon_info <- lapply(parsed_tax, function(x)
-    data.frame(stringr::str_match(x, class_regex), stringsAsFactors = FALSE))
-  taxon_info <- do.call(rbind, taxon_info)
-  names(taxon_info) <- c("match", names(class_key))
-  parsed_tax <- split(taxon_info[, which(class_key == "taxon_name") + 1],
-                      rep(seq_len(length(parsed_tax)),
-                          vapply(parsed_tax, length, integer(1))))
+  if (is.null(class_sep)) { # Use mutliple matches of the class regex instead of sep
+    taxon_info <- lapply(parsed_tax, function(x)
+      data.frame(stringr::str_match_all(x, class_regex), stringsAsFactors = FALSE))
+    parsed_tax <- lapply(taxon_info, `[[`, which(class_key == "taxon_name") + 1)
+    taxon_info <- do.call(rbind, taxon_info)
+    names(taxon_info) <- c("match", names(class_key))
+  } else { # only use first match if sep is applied
+    taxon_info <- lapply(parsed_tax, function(x)
+      data.frame(stringr::str_match(x, class_regex), stringsAsFactors = FALSE))
+    taxon_info <- do.call(rbind, taxon_info)
+    names(taxon_info) <- c("match", names(class_key))
+    parsed_tax <- split(taxon_info[, which(class_key == "taxon_name") + 1],
+                        rep(seq_len(length(parsed_tax)),
+                            vapply(parsed_tax, length, integer(1))))
+  }
 
   # Create taxmap object
   output <- taxmap(.list = parsed_tax)
 
   # Add taxon ids to extracted info and add to data
   if (ncol(taxon_info) > 2) {
-    taxon_info$taxon_id <- unlist(lapply(output$supertaxa(output$input_ids,
-                                                          value = "taxon_ids",
-                                                          include_input = TRUE),
-                                          rev))
-    output$data$class_data <- taxon_info
-    if (!include_match) {
+    my_supertaxa <- output$supertaxa(output$input_ids,
+                                     value = "taxon_ids",
+                                     include_input = TRUE)
+    input_index <- rep(seq_len(length(my_supertaxa)),
+                                  vapply(my_supertaxa, length, numeric(1)))
+    output$data$class_data <- cbind(list(taxon_id = unlist(lapply(my_supertaxa, rev)),
+                                         input_index = rep(seq_len(length(my_supertaxa)),
+                                                           vapply(my_supertaxa, length, numeric(1)))),
+                                    taxon_info,
+                                    stringsAsFactors = FALSE)
+    if (include_match) {
+      match_col_index <- which(colnames(output$data$class_data) == "match")
+      output$data$class_data <- cbind(output$data$class_data[-match_col_index],
+                                      list(regex_match = output$data$class_data$match),
+                                      stringsAsFactors = FALSE)
+    } else {
       output$data$class_data$match  <- NULL
     }
+    output$data$class_data <- dplyr::as.tbl(output$data$class_data)
   }
 
   # Add taxonomic source to datasets
@@ -221,14 +243,16 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
 
   # Add additional data sets
   name_datset <- function(dataset, sort_var) {
-    target_value <- get_sort_var(dataset, sort_var)
-    source_value <- get_sort_var(tax_data, names(sort_var))
-    obs_taxon_ids <- output$input_ids[match(target_value, source_value)]
-    if (is.data.frame(dataset)) {
-      dataset <- dplyr::bind_cols(dplyr::tibble(taxon_id = obs_taxon_ids),
-                                  dataset)
-    } else {
-      names(dataset) <- obs_taxon_ids
+    if (!is.na(sort_var)) {
+      target_value <- get_sort_var(dataset, sort_var)
+      source_value <- get_sort_var(tax_data, names(sort_var))
+      obs_taxon_ids <- output$input_ids[match(target_value, source_value)]
+      if (is.data.frame(dataset)) {
+        dataset <- dplyr::bind_cols(dplyr::tibble(taxon_id = obs_taxon_ids),
+                                    dataset)
+      } else {
+        names(dataset) <- obs_taxon_ids
+      }
     }
     return(dataset)
   }
@@ -246,6 +270,12 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
 
   # Check format of data sets
   check_taxmap_data(output)
+
+  # Put tax_data first
+  if ("tax_data" %in% names(output$data)) {
+    tax_data_index <- which(names(output$data) == "tax_data")
+    output$data <- c(output$data[tax_data_index], output$data[-tax_data_index])
+  }
 
   return(output)
 }
@@ -296,6 +326,11 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
 #'   as a dataset, like those in `datasets`.
 #' @param use_database_ids (`TRUE`/`FALSE`) Whether or not to use downloaded
 #'   database taxon ids instead of arbitrary, automatically-generated taxon ids.
+#' @param ask  (`TRUE`/`FALSE`) Whether or not to promt the user for input.
+#'   Currently, this would only happen when looking up the taxonomy of a taxon
+#'   name with multiple matches. If `FALSE`, taxa with multiple hits are treated
+#'   as if they do not exist in the database. This might change in the future if
+#'   we can find an elegant way of handling this.
 #'
 #' @family parsers
 #'
@@ -346,9 +381,19 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
 #' @export
 lookup_tax_data <- function(tax_data, type, column = 1, datasets = list(),
                             mappings = c(), database = "ncbi",
-                            include_tax_data = TRUE, use_database_ids = TRUE) {
+                            include_tax_data = TRUE, use_database_ids = TRUE,
+                            ask = TRUE) {
   # Make sure taxize is installed
   check_for_pkg("taxize")
+
+  # Check that a supported database is being used
+  supported_databases <- names(database_list)
+  if (! database %in% supported_databases) {
+    stop(paste0('The database "', database,
+                '" is not a valid database for looking up that taxonomy of ',
+                'sequnece ids. Valid choices include:\n',
+                limited_print(supported_databases, type = "silent")))
+  }
 
   # Hidden parameters
   batch_size <- 100
@@ -357,46 +402,81 @@ lookup_tax_data <- function(tax_data, type, column = 1, datasets = list(),
   internal_class_name <- "___class_string___"
 
   # Define lookup functions
+  format_class_table <- function(class_table) {
+    # Complain about failed queries
+    failed_queries <- is.na(class_table)
+    if (sum(failed_queries) > 0) {
+      error_msg <- paste0('The following ', sum(failed_queries),
+                          ' taxon name could not be looked up:\n  ',
+                          limited_print(names(failed_queries[failed_queries]),
+                                        type = "silent"))
+      if (ask) {
+        error_msg <- paste0(error_msg, "\n",
+                            'This is probably means they dont exist in the database "', database, '".')
+      } else {
+        error_msg <- paste0(error_msg, "\n",
+                            'This is probably means they dont exist in the database "', database,
+                            '" or have multiple matches. ',
+                            'Use "ask = TRUE" to specify which is the correct match when multiple matches occur.')
+      }
+      warning(error_msg, call. = FALSE)
+    }
+
+    # Rename columns of result
+    col_names <- c(paste0(database, "_name"),
+                   paste0(database, "_rank"),
+                   paste0(database, "_id"))
+    class_table[! failed_queries] <- lapply(class_table[! failed_queries],
+                                       function(x) stats::setNames(x, col_names))
+
+    # Add placeholders for failed requests
+    class_table[failed_queries] <- lapply(seq_len(sum(failed_queries)),
+                                     function(i) {
+                                       out <- dplyr::tibble(a = "unknown taxon",
+                                                            b = "unknown rank",
+                                                            c = "unknown")
+                                       colnames(out) <- col_names
+                                       return(out)
+                                     })
+    return(class_table)
+  }
+
+
   use_taxon_id <- function(ids) {
     result <- map_unique(ids, taxize::classification, ask = FALSE, rows = 1,
                          db = database)
-    # Rename columns of result
-    failed_queries <- is.na(result)
-    result[! failed_queries] <- lapply(result[! failed_queries],
-                                       function(x) stats::setNames(x, c(paste0(database, "_name"),
-                                                                        paste0(database, "_rank"),
-                                                                        paste0(database, "_id"))))
-    return(result)
+    format_class_table(result)
   }
 
   use_seq_id <- function(ids) {
+    # Check that a supported database is being used
+    supported_databases <- c("ncbi")
+    if (! database %in% supported_databases) {
+      stop(paste0('The database "', database,
+                  '" is not a valid database for looking up that taxonomy of ',
+                  'sequnece ids. Valid choices include:\n',
+                  limited_print(supported_databases, type = "silent")))
+    }
+
     # Look up classifications
-    result <- stats::setNames(taxize::classification(taxize::genbank2uid(ids, batch_size = batch_size)),
-                              ids)
-    # Rename columns of result
-    failed_queries <- is.na(result)
-    result[! failed_queries] <- lapply(result[! failed_queries],
-                                       function(x) stats::setNames(x, c(paste0(database, "_name"),
-                                                                        paste0(database, "_rank"),
-                                                                        paste0(database, "_id"))))
+    result <- stats::setNames(
+      unlist(lapply(ids, function(i) {
+        taxize::classification(taxize::genbank2uid(i)[1], db = database)
+      }), recursive = FALSE),
+      ids)
+
+    format_class_table(result)
   }
 
   use_taxon_name <- function(names) {
     # Look up classifications
-    result <- map_unique(names, taxize::classification, ask = FALSE, rows = 1, db = database)
-    # Complain about failed queries
-    failed_queries <- is.na(result)
-    if (sum(failed_queries) > 0) {
-      warning(paste0('The following ', sum(failed_queries),
-                     ' taxon name could not be looked up:\n  ',
-                     limited_print(names(failed_queries), type = "silent")))
+    if (ask) {
+      result <- map_unique(names, taxize::classification, ask = TRUE, db = database)
+    } else {
+      result <- map_unique(names, taxize::classification, ask = FALSE, db = database)
     }
-    # Rename columns of result
-    result[! failed_queries] <- lapply(result[! failed_queries],
-                                       function(x) stats::setNames(x, c(paste0(database, "_name"),
-                                                                        paste0(database, "_rank"),
-                                                                        paste0(database, "_id"))))
-    return(result)
+
+    format_class_table(result)
   }
 
   lookup_funcs <- list("seq_id" = use_seq_id,
@@ -422,16 +502,18 @@ lookup_tax_data <- function(tax_data, type, column = 1, datasets = list(),
   classifications <- lookup_funcs[[type]](query)
   class_strings <- unlist(lapply(classifications, function(x) {
     lapply(seq_len(nrow(x)), function(i) {
-      paste(as.character(x[1:i, 1]), collapse = internal_class_sep)
+      paste(as.character(unlist(x[1:i, 1])), collapse = internal_class_sep)
     })
   }))
   combined_class <- do.call(rbind, unname(classifications))
   internal_class_frame <- stats::setNames(data.frame(class_strings,
                                                      stringsAsFactors = FALSE),
                                           internal_class_name)
-  combined_class <- cbind(internal_class_frame, combined_class)
+  combined_class <- cbind(internal_class_frame,
+                          combined_class,
+                          stringsAsFactors = FALSE)
 
-  # Add mapping columns to classification data
+  # Add mapping columns to classfication data
   tax_data_indexes <- cumsum(vapply(classifications, nrow, numeric(1)))
   mappping_cols <- unique(c(names(mappings), "{{index}}", "{{name}}"))
   if (!is.data.frame(tax_data)) {
@@ -474,7 +556,10 @@ lookup_tax_data <- function(tax_data, type, column = 1, datasets = list(),
   # Replace standard taxon ids with database taxon ids
   if (use_database_ids) {
     taxon_id_col <- paste0(database, "_id")
-    output$replace_taxon_ids(unique(combined_class)[["ncbi_id"]])
+    # I am not sure why the following line works...
+    new_ids <- unique(combined_class[[taxon_id_col]])[match(output$taxon_ids(),
+                                                            unique(output$input_ids))]
+    output$replace_taxon_ids(new_ids)
   }
 
   return(output)
@@ -504,7 +589,11 @@ get_sort_var <- function(data, var) {
     if (is.data.frame(data)) {
       return(rownames(data))
     } else {
-      return(names(data))
+      if (is.null(names(data))) {
+        return(rep(NA_character_, length(data)))
+      } else {
+        return(names(data))
+      }
     }
   }  else if (var == "{{value}}") {
     if (is.data.frame(data)) {
@@ -660,12 +749,23 @@ extract_tax_data <- function(tax_data, key, regex, class_key = "taxon_name",
   # Extract capture groups
   parsed_input <- data.frame(stringr::str_match(tax_data, regex), stringsAsFactors = FALSE)
   colnames(parsed_input) <- c("input", names(key))
+  parsed_input <- cbind(parsed_input[-1], list(input = parsed_input$input),
+                        stringsAsFactors = FALSE)
+
+  # Complain about failed matches
+  failed <- which(apply(is.na(parsed_input), MARGIN = 1, FUN = all))
+  if (length(failed) > 0) {
+    warning(paste0("The following input indexes failed to match the regex supplied:\n",
+                   limited_print(failed, type = "silent")), call. = FALSE)
+    parsed_input <- parsed_input[-failed, ]
+  }
 
   # Use parse_tax_data if the input is a classification
   if ("class" %in% key) {
     output <- parse_tax_data(tax_data = parsed_input,
-                             class_cols = which(key == "class") + 1,
-                             class_sep = class_sep, class_key = class_key,
+                             class_cols = which(key == "class"),
+                             class_sep = class_sep,
+                             class_key = class_key,
                              sep_is_regex = sep_is_regex,
                              class_regex = class_regex,
                              include_match = include_match,
@@ -680,7 +780,7 @@ extract_tax_data <- function(tax_data, key, regex, class_key = "taxon_name",
   if (any(key %in% c("taxon_name", "taxon_id", "seq_id"))) {
     my_type <- key[key != "info"][1]
     output <- lookup_tax_data(tax_data = parsed_input, type = my_type,
-                              column = which(key == my_type) + 1,
+                              column = names(my_type),
                               database = database,
                               include_tax_data = include_tax_data)
 

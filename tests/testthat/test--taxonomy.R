@@ -153,6 +153,23 @@ test_that("Finding roots", {
 })
 
 
+test_that("Finding branches", {
+  x <- taxonomy(tiger, cougar, mole, tomato, potato,
+                unidentified_plant, unidentified_animal)
+  expect_equal(x$branches(), branches(x))
+
+  # Index return type
+  expect_type(x$branches(value = "taxon_indexes"), "integer")
+
+  # Taxon ID return type
+  expect_type(x$branches(value = "taxon_ids"), "character")
+
+  # Expected output
+  expect_equal(which(! x$is_root() & ! x$is_leaf()), x$branches())
+
+})
+
+
 test_that("Finding supertaxa", {
   x <- taxonomy(tiger, cougar, mole, tomato, potato,
                 unidentified_plant, unidentified_animal)
@@ -170,6 +187,9 @@ test_that("Finding supertaxa", {
   expect_equal(supertaxa(x, recursive = TRUE), supertaxa(x, recursive = -1))
   expect_equal(supertaxa(x, recursive = FALSE), supertaxa(x, recursive = 1))
   expect_equal(max(vapply(supertaxa(x, recursive = 2), length, numeric(1))), 2)
+
+  # Duplicated inputs
+  expect_equal(names(x$supertaxa(c(1, 2, 1, 1))), c("b", "c", "b", "b"))
 })
 
 
@@ -189,8 +209,8 @@ test_that("Finding subtaxa", {
   # Recursion settings
   expect_equal(subtaxa(x, recursive = TRUE), subtaxa(x, recursive = -1))
   expect_equal(subtaxa(x, recursive = FALSE), subtaxa(x, recursive = 1))
-  expect_equal(subtaxa(x, "1", recursive = 2, simplify = TRUE),
-               subtaxa(x, subtaxa(x, "1", recursive = FALSE, simplify = TRUE),
+  expect_equal(subtaxa(x, "b", recursive = 2, simplify = TRUE),
+               subtaxa(x, subtaxa(x, "b", recursive = FALSE, simplify = TRUE),
                        recursive = FALSE, simplify = TRUE, include_input = TRUE))
 
   # Edge cases
@@ -236,6 +256,18 @@ test_that("Filtering taxa", {
   expect_equal(result$taxon_names(), c("l" = "Solanum"))
   expect_warning(filter_taxa(x, taxon_names == "Solanum", drop_obs = FALSE))
   expect_warning(filter_taxa(x, taxon_names == "Solanum", reassign_obs = TRUE))
+
+  # Check that filtering does not change order of taxa
+  result <- filter_taxa(x, taxon_names != "tuberosum")
+  expected_names <- x$taxon_names()
+  expected_names <- expected_names[expected_names != "tuberosum"]
+  expect_true(all(expected_names == result$taxon_names()))
+
+  result <- filter_taxa(x, taxon_names == "Solanum", subtaxa = TRUE, invert = TRUE)
+  expected_names <- x$taxon_names()
+  expected_names <- expected_names[! expected_names %in% c("Solanum", "lycopersicum", "tuberosum")]
+  expect_true(all(expected_names == result$taxon_names()))
+
 })
 
 
@@ -264,4 +296,17 @@ test_that("Mapping vairables",  {
 test_that("dots and .list return the same output", {
   expect_equal(taxonomy(tiger, cougar, mole, tomato, potato),
                taxonomy(.list = list(tiger, cougar, mole, tomato, potato)))
+})
+
+test_that("get data frame", {
+  x <- taxonomy(tiger, cougar, mole, tomato, potato,
+                unidentified_plant, unidentified_animal)
+  expect_equal(x$get_data_frame(), get_data_frame(x))
+
+  df <- x$get_data_frame()
+  expect_is(df, "data.frame")
+  expect_is(df$taxon_names, "character")
+
+  # select columns to return
+  expect_named(x$get_data_frame("taxon_ids"), "taxon_ids")
 })

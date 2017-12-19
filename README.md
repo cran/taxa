@@ -7,6 +7,10 @@ Status](https://travis-ci.org/ropensci/taxa.svg?branch=master)](https://travis-c
 [![Project Status: WIP - Initial development is in progress, but there
 has not yet been a stable, usable release suitable for the
 public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip)
+[![rstudio mirror
+downloads](http://cranlogs.r-pkg.org/badges/taxa)](https://github.com/metacran/cranlogs.app)
+[![cran
+version](http://www.r-pkg.org/badges/version/taxa)](https://cran.r-project.org/package=taxa)
 
 `taxa` defines taxonomic classes and functions to manipulate them. The
 goal is to use these classes as low level fundamental taxonomic classes
@@ -27,6 +31,10 @@ Diagram of class concepts for `taxa` classes:
 Install
 -------
 
+CRAN version
+
+    install.packages("taxa")
+
 Development version from GitHub
 
     devtools::install_github("ropensci/taxa")
@@ -38,11 +46,12 @@ The classes
 
 ### Minor component classes
 
-There a few optional classes used to store information in other classes.
-In most cases, these can be replaced with simple character values but
-using them provides more information and potential functionality.
+There are a few optional classes used to store information in other
+classes. In most cases, these can be replaced with simple character
+values but using them provides more information and potential
+functionality.
 
-#### `database`
+#### database
 
 Taxonomic data usually comes from a database. A common example is the
 [NCBI Taxonomy Database](https://www.ncbi.nlm.nih.gov/taxonomy) used to
@@ -119,7 +128,7 @@ instead of making a new database object (e.g. `"ncbi"` instead of the
     #>   description: Integrated Taxonomic Information System
     #>   id regex: .*
 
-#### `rank`
+#### rank
 
 Taxa might have defined ranks (e.g. species, family, etc.), ambiguous
 ranks (e.g. "unranked", "unknown"), or no rank information at all. The
@@ -139,7 +148,7 @@ The taxon name can be defined in the same way as rank.
     #> <TaxonName> Poa
     #>   database: ncbi
 
-#### `taxon_id`
+#### taxon\_id
 
 Each database has its set of unique taxon IDs. These IDs are better than
 using the taxon name directly because they are guaranteed to be unique,
@@ -756,6 +765,25 @@ observations in `my_taxmap$data`.
     #>   1 functions:
     #>  reaction
 
+You can choose to filter out taxa whose observations did not pass the
+filter as well:
+
+    filter_obs(my_taxmap, "info", dangerous == TRUE, drop_taxa = TRUE)
+    #> <Taxmap>
+    #>   7 taxa: b. Mammalia, d. Felidae ... m. tigris, p. sapiens
+    #>   7 edges: NA->b, b->d, b->f, d->h, f->k, h->m, k->p
+    #>   3 data sets:
+    #>     info:
+    #>       # A tibble: 2 x 4
+    #>           name n_legs dangerous taxon_id
+    #>         <fctr>  <dbl>     <lgl>    <chr>
+    #>       1  tiger      4      TRUE        m
+    #>       2  human      2      TRUE        p
+    #>     phylopic_ids:  e148eabb-f138-43c6-b1e4-5cda2180485a ... 63604565-0406-460b-8cb8-1abe954b3f3a
+    #>     foods: a list with 6 items
+    #>   1 functions:
+    #>  reaction
+
 #### Sampling
 
 The functions `sample_n_obs` and `sample_n_taxa` are similar to
@@ -892,7 +920,7 @@ Sorting the edge list and observations is done using `arrage_taxa` and
 
     arrange_taxa(my_taxmap, taxon_names)
     #> <Taxmap>
-    #>   17 taxa: b. Mammalia ... q. lycopersicum, r. tuberosum
+    #>   17 taxa: n. catus, d. Felidae ... r. tuberosum, o. typhlops
     #>   17 edges: i->n, b->d, d->i, b->f ... g->l, h->m, l->r, j->o
     #>   3 data sets:
     #>     info:
@@ -935,7 +963,7 @@ can be associated with and derived from. The figure below shows
 simplified versions of how to create `taxmap` objects from different
 types of data in different formats.
 
-<img src="vignettes/parsing_guide.png" title="parsing diagram" width="718">
+<img src="vignettes/parsing_guide.png" title="parsing diagram" width="800">
 
 The `parse_tax_data` and `lookup_tax_data` have, in addition to the
 functionality above, the ability to include additional data sets that
@@ -944,14 +972,147 @@ identifier). Elements in these datasets will be assigned the taxa
 defined in the source data, so functions like `filter_taxa` and
 `filter_obs` will work on all of the dataset at once.
 
-### For more information
+Parsing Hierarchy and hierarchies objects
+-----------------------------------------
+
+A set of functions are available for parsing objects of class
+`Hierarchy` and `hierarchies`. These functions are being ported from the
+CRAN package `binomen`.
+
+The functions below are "taxonomically aware" so that you can use for
+example `>` and `<` operators to filter your taxonomic names data.
+
+### pick
+
+`pick()` - Pick out specific taxa, while others are dropped
+
+    ex_hierarchy1
+    #> <Hierarchy>
+    #>   no. taxon's:  3 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544 
+    #>   Poa annua / species / 93036
+    # specific ranks by rank name
+    pick(ex_hierarchy1, ranks("family"))
+    #> <Hierarchy>
+    #>   no. taxon's:  1 
+    #>   Poaceae / family / 4479
+    # two elements by taxonomic name
+    pick(ex_hierarchy1, nms("Poaceae", "Poa"))
+    #> <Hierarchy>
+    #>   no. taxon's:  2 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544
+    # two elements by taxonomic identifier
+    pick(ex_hierarchy1, ids(4479, 4544))
+    #> <Hierarchy>
+    #>   no. taxon's:  2 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544
+    # combine types
+    pick(ex_hierarchy1, ranks("family"), ids(4544))
+    #> <Hierarchy>
+    #>   no. taxon's:  2 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544
+
+### pop
+
+`pop()` - Pop out taxa, that is, drop them
+
+    ex_hierarchy1
+    #> <Hierarchy>
+    #>   no. taxon's:  3 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544 
+    #>   Poa annua / species / 93036
+    # specific ranks by rank name
+    pop(ex_hierarchy1, ranks("family"))
+    #> <Hierarchy>
+    #>   no. taxon's:  2 
+    #>   Poa / genus / 4544 
+    #>   Poa annua / species / 93036
+    # two elements by taxonomic name
+    pop(ex_hierarchy1, nms("Poaceae", "Poa"))
+    #> <Hierarchy>
+    #>   no. taxon's:  1 
+    #>   Poa annua / species / 93036
+    # two elements by taxonomic identifier
+    pop(ex_hierarchy1, ids(4479, 4544))
+    #> <Hierarchy>
+    #>   no. taxon's:  1 
+    #>   Poa annua / species / 93036
+    # combine types
+    pop(ex_hierarchy1, ranks("family"), ids(4544))
+    #> <Hierarchy>
+    #>   no. taxon's:  1 
+    #>   Poa annua / species / 93036
+
+### span
+
+`span()` - Select a range of taxa, either by two names, or relational
+operators
+
+    ex_hierarchy1
+    #> <Hierarchy>
+    #>   no. taxon's:  3 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544 
+    #>   Poa annua / species / 93036
+    # keep all taxa between family and genus
+    # - by rank name, taxonomic name or ID
+    span(ex_hierarchy1, nms("Poaceae", "Poa"))
+    #> <Hierarchy>
+    #>   no. taxon's:  2 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544
+
+    # keep all taxa greater than genus
+    span(ex_hierarchy1, ranks("> genus"))
+    #> <Hierarchy>
+    #>   no. taxon's:  1 
+    #>   Poaceae / family / 4479
+
+    # keep all taxa greater than or equal to genus
+    span(ex_hierarchy1, ranks(">= genus"))
+    #> <Hierarchy>
+    #>   no. taxon's:  2 
+    #>   Poaceae / family / 4479 
+    #>   Poa / genus / 4544
+
+    # keep all taxa less than Felidae
+    span(ex_hierarchy2, nms("< Felidae"))
+    #> <Hierarchy>
+    #>   no. taxon's:  2 
+    #>   Puma / genus / 146712 
+    #>   Puma concolor / species / 9696
+
+    ## Multiple operator statements - useful with larger classifications
+    ex_hierarchy3
+    #> <Hierarchy>
+    #>   no. taxon's:  6 
+    #>   Chordata / phylum / 158852 
+    #>   Vertebrata / subphylum / 331030 
+    #>   Teleostei / class / 161105 
+    #>   Salmonidae / family / 161931 
+    #>   Salmo / genus / 161994 
+    #>   Salmo salar / species / 161996
+    span(ex_hierarchy3, ranks("> genus"), ranks("< phylum"))
+    #> <Hierarchy>
+    #>   no. taxon's:  3 
+    #>   Vertebrata / subphylum / 331030 
+    #>   Teleostei / class / 161105 
+    #>   Salmonidae / family / 161931
+
+For more information
+--------------------
 
 This vignettte is meant to be just an outline of what `taxa` can do. In
 the future, we plan to release additional, in-depth vignettes for
 specific topics. More informaiton for specific functions and examples
-can be found on their man pages by type the name of the function
-prefixed by a `?` in the consol of an R session. For example,
-`?filter_taxa` will pull up the help page for `filter_taxa`.
+can be found on their man pages by typing the name of the function
+prefixed by a `?` in an R session. For example, `?filter_taxa` will pull
+up the help page for `filter_taxa`.
 
 Use cases
 ---------

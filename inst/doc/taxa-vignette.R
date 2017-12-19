@@ -218,6 +218,9 @@ filter_taxa(my_taxmap, startsWith(taxon_names, "t"), supertaxa = TRUE)
 filter_obs(my_taxmap, "info", dangerous == TRUE)
 
 ## ------------------------------------------------------------------------
+filter_obs(my_taxmap, "info", dangerous == TRUE, drop_taxa = TRUE)
+
+## ------------------------------------------------------------------------
 set.seed(1)
 sample_n_taxa(my_taxmap, 3)
 set.seed(1)
@@ -244,7 +247,7 @@ arrange_obs(my_taxmap, "info", name)
 
 ## ----results='asis', echo = FALSE----------------------------------------
 fig_path <- "parsing_guide.png"
-width <- 718
+width <- 800
 if (knitr:::child_mode()) { # if run as a child
   fig_path <- file.path("vignettes", fig_path)
 }

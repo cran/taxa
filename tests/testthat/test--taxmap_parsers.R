@@ -68,7 +68,7 @@ test_that("Taxmap can be intialized from complex data", {
   raw_data <- c("K__Mammalia;P__Carnivora;C__Felidae;G__Panthera;S__leo",
                 "K__Mammalia;P__Carnivora;C__Felidae;G__Panthera;S__tigris",
                 "K__Mammalia;P__Carnivora;C__Felidae;G__Ursus;S__americanus")
-  parse_tax_data(raw_data, class_sep = ";", class_regex = "^(.+)__(.+)$",
+  result <- parse_tax_data(raw_data, class_sep = ";", class_regex = "^(.+)__(.+)$",
                  class_key = c(my_rank = "info", tax_name = "taxon_name"),
                  include_match = FALSE)
 
@@ -77,7 +77,8 @@ test_that("Taxmap can be intialized from complex data", {
                                 class_regex = "^(.+)__(.+)$",
                                 class_key = c(rank = "info",
                                               tax_name = "taxon_name"),
-                                include_match = FALSE))
+                                include_match = FALSE),
+                 "same name as functions")
 
 })
 
@@ -136,6 +137,15 @@ test_that("Taxmap can be intialized from queried data", {
 
   expect_equal(name_result, id_result)
   expect_equal(name_result, seq_result)
+
+  # Expect an error if trying to use invalid database
+  expect_error(lookup_tax_data(1:3, type = "seq_id", database = "not valid"),
+               "not a valid database")
+
+  # Expect an error if trying to use invalid database of sequence id
+  expect_error(lookup_tax_data(1:3, type = "seq_id", database = "bold"),
+               "not a valid database")
+
 })
 
 
@@ -144,15 +154,43 @@ test_that("Taxmap can be intialized from raw strings", {
   raw_data <- c(">var_1:A--var_2:9689--non_target--tax:K__Mammalia;P__Carnivora;C__Felidae;G__Panthera;S__leo",
                 ">var_1:B--var_2:9694--non_target--tax:K__Mammalia;P__Carnivora;C__Felidae;G__Panthera;S__tigris",
                 ">var_1:C--var_2:9643--non_target--tax:K__Mammalia;P__Carnivora;C__Felidae;G__Ursus;S__americanus")
-  extract_tax_data(raw_data,
-                   key = c(var_1 = "info", var_2 = "info", tax = "class"),
-                   regex = "^>var_1:(.+)--var_2:(.+)--non_target--tax:(.+)$",
-                   class_sep = ";", class_regex = "^(.+)__(.+)$",
-                   class_key = c(my_rank = "info", tax_name = "taxon_name"))
+  result <- extract_tax_data(raw_data,
+                             key = c(var_1 = "info", var_2 = "info", tax = "class"),
+                             regex = "^>var_1:(.+)--var_2:(.+)--non_target--tax:(.+)$",
+                             class_sep = ";", class_regex = "^(.+)__(.+)$",
+                             class_key = c(my_rank = "info", tax_name = "taxon_name"))
+  expect_equal(length(result$taxa), 8)
+  expect_equal(result$data$tax_data$var_1, c("A", "B", "C"))
+  expect_true("my_rank" %in% colnames(result$data$class_data))
 
-
+  # Test looking up variables extracted from raw strings
   extract_tax_data(raw_data,
                    key = c(var_1 = "info", var_2 = "taxon_id", tax = "info"),
                    regex = "^>var_1:(.+)--var_2:(.+)--non_target--tax:(.+)$")
 
+  # test that different info with same sep can be used in classifications
+  raw_data <- c("K;Mammalia;P;Carnivora;C;Felidae;G;Panthera;S;leo;",
+                "K;Mammalia;P;Carnivora;C;Felidae;G;Panthera;S;tigris;",
+                "K;Mammalia;P;Carnivora;C;Felidae;G;Ursus;S;americanus;")
+  result <- extract_tax_data(raw_data,
+                             key = c(tax = "class"),
+                             regex = "(.*)",
+                             class_regex = "(.+?);(.*?);",
+                             class_key = c(my_rank = "info", tax_name = "taxon_name"))
+  expect_equal(length(result$taxa), 8)
+  expect_equal(length(result$roots()), 1)
+  expect_true("my_rank" %in% colnames(result$data$class_data))
+
+  # Test if it complains about failed matches
+  raw_data <- c(">var_1:A--var_2:9689--non_target--tax:K__Mammalia;P__Carnivora;C__Felidae;G__Panthera;S__leo",
+                "not a match",
+                ">var_1:C--var_2:9643--non_target--tax:K__Mammalia;P__Carnivora;C__Felidae;G__Ursus;S__americanus")
+  expect_warning(extract_tax_data(raw_data,
+                             key = c(var_1 = "info", var_2 = "info", tax = "class"),
+                             regex = "^>var_1:(.+)--var_2:(.+)--non_target--tax:(.+)$",
+                             class_sep = ";", class_regex = "^(.+)__(.+)$",
+                             class_key = c(my_rank = "info", tax_name = "taxon_name")),
+                 "indexes failed to match the regex supplied")
+
 })
+

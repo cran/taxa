@@ -3,8 +3,8 @@
 #' A class designed to store a taxonomy and associated information. This class
 #' builds on the [taxonomy()] class. User defined data can be stored in the list
 #' `obj$data`, where `obj` is a taxmap object. Data that is associated with taxa
-#' can be manipulated in a variety of ways using functions like `filter_taxa`
-#' and `filter_obs`. To associate the items of lists/vectors with taxa, name
+#' can be manipulated in a variety of ways using functions like [filter_taxa()]
+#' and [filter_obs()]. To associate the items of lists/vectors with taxa, name
 #' them by [taxon_ids()]. For tables, add a column named `taxon_id` that stores
 #' [taxon_ids()].
 #'
@@ -18,7 +18,7 @@
 #'   [hierarchy()] or character vectors in a list. Cannot be used with `...`.
 #' @param data A list of tables with data associated with the taxa.
 #' @param funcs A named list of functions to include in the class. Referring to
-#'   the names of these in functions like `filter_taxa` will execute the
+#'   the names of these in functions like [filter_taxa()] will execute the
 #'   function and return the results. If the function has at least one argument,
 #'   the taxmap object is passed to it.
 #' @family classes
@@ -53,7 +53,7 @@ Taxmap <- R6::R6Class(
       self$funcs <- validate_taxmap_funcs(funcs)
     },
 
-    print = function(indent = "", max_rows = 3, max_items = 3,
+    print = function(indent = "", max_rows = 3, max_items = 6,
                      max_width = getOption("width") - 10) {
 
       # Call `taxonomy` print method
@@ -201,8 +201,9 @@ Taxmap <- R6::R6Class(
 
     obs_apply = function(data, func, simplify = FALSE, value = NULL,
                          subset = NULL, recursive = TRUE, ...) {
-      my_obs <- eval(substitute(self$obs(data, simplify = FALSE, value = value, subset = subset,
-                                         recursive = recursive)))
+      my_obs <- self$obs(data, simplify = FALSE, value = value,
+                         subset = eval(substitute(subset)),
+                         recursive = recursive)
       output <- lapply(my_obs, func, ...)
       if (simplify) {
         output <- unlist(output)
@@ -435,12 +436,26 @@ Taxmap <- R6::R6Class(
     },
 
 
-    n_obs = function(target) {
+    n_obs = function(target = NULL) {
+      if (is.null(target)) {
+        if (length(self$data) > 0) {
+          target <- 1
+        } else {
+          stop(paste0('There are no data sets to get observation info from.'))
+        }
+      }
       vapply(self$obs(target, recursive = TRUE, simplify = FALSE),
              length, numeric(1))
     },
 
-    n_obs_1 = function(target) {
+    n_obs_1 = function(target = NULL) {
+      if (is.null(target)) {
+        if (length(self$data) > 0) {
+          target <- 1
+        } else {
+          stop(paste0('There are no data sets to get observation info from.'))
+        }
+      }
       vapply(self$obs(target, recursive = FALSE, simplify = FALSE),
              length, numeric(1))
     }
@@ -448,10 +463,24 @@ Taxmap <- R6::R6Class(
   ),
 
   private = list(
-    nse_accessible_funcs = c("taxon_names", "taxon_ids", "taxon_indexes",
-                             "n_supertaxa", "n_subtaxa", "n_subtaxa_1",
-                             "taxon_ranks", "is_root", "is_stem", "is_branch",
-                             "is_leaf"),
+    nse_accessible_funcs = c(
+      "taxon_names",
+      "taxon_ids",
+      "taxon_indexes",
+      "classifications",
+      "n_supertaxa",
+      "n_supertaxa_1",
+      "n_subtaxa",
+      "n_subtaxa_1",
+      "taxon_ranks",
+      "is_root",
+      "is_stem",
+      "is_branch",
+      "is_leaf",
+      "is_internode",
+      "n_obs",
+      "n_obs_1"
+    ),
 
     check_dataset_name = function(target) {
       if (! target %in% names(self$data)) {
@@ -485,7 +514,7 @@ Taxmap <- R6::R6Class(
     get_data_taxon_ids = function(dataset_name, require = FALSE) {
       # Get the dataset
       if (length(dataset_name) == 1 && # data is name/index of dataset in object
-          (dataset_name %in% names(self$data) || is.integer(dataset_name))) {
+          (dataset_name %in% names(self$data) || is.numeric(dataset_name))) {
         dataset <- self$data[[dataset_name]]
       } else { # it is an external data set, not in the object
         dataset <- dataset_name

@@ -112,6 +112,38 @@ roots.Taxonomy <- function(obj, ...) {
 
 
 #' @export
+branches <- function(obj, ...) {
+  UseMethod("branches")
+}
+
+#' @export
+branches.default <- function(obj, ...) {
+  stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
+}
+
+#' @export
+branches.Taxonomy <- function(obj, ...) {
+  obj$branches(...)
+}
+
+
+#' @export
+internodes <- function(obj, ...) {
+  UseMethod("internodes")
+}
+
+#' @export
+internodes.default <- function(obj, ...) {
+  stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
+}
+
+#' @export
+internodes.Taxonomy <- function(obj, ...) {
+  obj$internodes(...)
+}
+
+
+#' @export
 subtaxa <- function(obj, ...) {
   UseMethod("subtaxa")
 }
@@ -192,18 +224,18 @@ id_classifications.Taxonomy <- function(obj, ...) {
 
 
 #' @export
-name_classifications <- function(obj, ...) {
-  UseMethod("name_classifications")
+classifications <- function(obj, ...) {
+  UseMethod("classifications")
 }
 
 #' @export
-name_classifications.default <- function(obj, ...) {
+classifications.default <- function(obj, ...) {
   stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
 }
 
 #' @export
-name_classifications.Taxonomy <- function(obj, ...) {
-  obj$name_classifications(...)
+classifications.Taxonomy <- function(obj, ...) {
+  obj$classifications(...)
 }
 
 
@@ -220,6 +252,22 @@ n_supertaxa.default <- function(obj) {
 #' @export
 n_supertaxa.Taxonomy <- function(obj) {
   obj$n_supertaxa()
+}
+
+
+#' @export
+n_supertaxa_1 <- function(obj) {
+  UseMethod("n_supertaxa_1")
+}
+
+#' @export
+n_supertaxa_1.default <- function(obj) {
+  stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
+}
+
+#' @export
+n_supertaxa_1.Taxonomy <- function(obj) {
+  obj$n_supertaxa_1()
 }
 
 
@@ -300,6 +348,22 @@ get_data.default <- function(obj, ...) {
 #' @export
 get_data.Taxonomy <- function(obj, ...) {
   obj$get_data(...)
+}
+
+
+#' @export
+get_data_frame <- function(obj, ...) {
+  UseMethod("get_data_frame")
+}
+
+#' @export
+get_data_frame.default <- function(obj, ...) {
+  stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
+}
+
+#' @export
+get_data_frame.Taxonomy <- function(obj, ...) {
+  obj$get_data_frame(...)
 }
 
 
@@ -404,6 +468,22 @@ is_root.Taxonomy <- function(obj, ...) {
 
 
 #' @export
+is_internode <- function(obj, ...) {
+  UseMethod("is_internode")
+}
+
+#' @export
+is_internode.default <- function(obj, ...) {
+  stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
+}
+
+#' @export
+is_internode.Taxonomy <- function(obj, ...) {
+  obj$is_internode(...)
+}
+
+
+#' @export
 is_stem <- function(obj, ...) {
   UseMethod("is_root")
 }
@@ -468,6 +548,22 @@ map_data.Taxonomy <- function(obj, ...) {
 
 
 #' @export
+map_data_ <- function(obj, ...) {
+  UseMethod("map_data_")
+}
+
+#' @export
+map_data_.default <- function(obj, ...) {
+  stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
+}
+
+#' @export
+map_data_.Taxonomy <- function(obj, ...) {
+  obj$map_data_(...)
+}
+
+
+#' @export
 replace_taxon_ids <- function(obj, ...) {
   UseMethod("replace_taxon_ids")
 }
@@ -481,4 +577,21 @@ replace_taxon_ids.default <- function(obj, ...) {
 replace_taxon_ids.Taxonomy <- function(obj, ...) {
   obj <- obj$clone(deep = TRUE)
   obj$replace_taxon_ids(...)
+}
+
+
+#' @export
+remove_redundant_names <- function(obj, ...) {
+  UseMethod("remove_redundant_names")
+}
+
+#' @export
+remove_redundant_names.default <- function(obj, ...) {
+  stop("Unsupported class: ", class(obj)[[1L]], call. = FALSE, domain = NA)
+}
+
+#' @export
+remove_redundant_names.Taxonomy <- function(obj, ...) {
+  obj <- obj$clone(deep = TRUE)
+  obj$remove_redundant_names(...)
 }

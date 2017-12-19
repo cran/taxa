@@ -91,9 +91,9 @@ NULL
 #'
 #' @param obj The [taxonomy()] or [taxmap()] object containing taxon
 #'   information to be queried.
-#' @param subset (`character`) `taxon_ids` or indexes of
-#'   `taxon_data` for which supertaxa will be returned. Default: All taxa
-#' in `obj` will be used.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes to find supertaxa for.
+#'   Default: All taxa in `obj` will be used. Any variable name that appears in
+#'   [all_names()] can be used as if it was a vector on its own.
 #' @param recursive (`logical` or `numeric`) If `FALSE`, only return the
 #'   supertaxa one rank above the target taxa. If `TRUE`, return all the
 #'   supertaxa of every supertaxa, etc. Positive numbers indicate the number of
@@ -155,9 +155,9 @@ NULL
 #' @param obj The [taxonomy()] or [taxmap()] object containing taxon
 #'   information to be queried.
 #' @param func (`function`) The function to apply.
-#' @param subset (`character`) `taxon_ids` or indexes of
-#'   `taxon_data` for which supertaxa will be returned. Default: All taxa
-#' in `obj` will be used.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes of taxa to use.
+#'   Default: All taxa in `obj` will be used. Any variable name that appears in
+#'   [all_names()] can be used as if it was a vector on its own.
 #' @param recursive (`logical` or `numeric`) If `FALSE`, only return the
 #'   supertaxa one rank above the target taxa. If `TRUE`, return all the
 #'   supertaxa of every supertaxa, etc. Positive numbers indicate the number of
@@ -193,8 +193,9 @@ NULL
 #'
 #' @param obj The [taxonomy()] or [taxmap()] object containing taxon
 #'   information to be queried.
-#' @param subset (`character`) Taxon IDs for which root taxa will be
-#'   returned. Default: All taxon in `obj` will be used.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes to find roots for.
+#'   Default: All taxa in `obj` will be used. Any variable name that appears in
+#'   [all_names()] can be used as if it was a vector on its own.
 #' @param value What data to return. This is usually the name of column in a
 #'   table in `obj$data`. Any result of `all_names(obj)` can be used, but it
 #'   usually only makes sense to data that corresponds to taxa 1:1, such as
@@ -218,6 +219,94 @@ NULL
 NULL
 
 
+#' Get "branch" taxa
+#'
+#' Return the "branch" taxa for a [taxonomy()] or [taxmap()] object. A branch is
+#' anything that is not a root, stem, or leaf. Its the interior of the tree
+#' after the first split starting from the roots. Can also be used to get the
+#' branches of a subset of taxa.
+#' \preformatted{
+#' obj$branches(subset = NULL, value = NULL)
+#' branches(obj, subset = NULL, value = NULL)}
+#'
+#' @param obj The [taxonomy()] or [taxmap()] object containing taxon
+#'   information to be queried.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes used to subset
+#'   the tree prior to determining branches. Default: All taxa in `obj` will be
+#'   used. Any variable name that appears in [all_names()] can be used as if it
+#'   was a vector on its own. Note that branches are determined after the
+#'   filtering, so a given taxon might be a branch on the unfiltered tree, but
+#'   not a branch on the filtered tree.
+#' @param value What data to return. This is usually the name of column in a
+#'   table in `obj$data`. Any result of [all_names()] can be used, but it
+#'   usually only makes sense to use data that corresponds to taxa 1:1, such as
+#'   [taxon_ranks()]. By default, taxon indexes are returned.
+#'
+#' @family taxonomy indexing functions
+#'
+#' @return `character`
+#'
+#' @examples
+#' # Return indexes of branch taxa
+#' branches(ex_taxmap)
+#'
+#' # Return indexes for a subset of taxa
+#' branches(ex_taxmap, subset = 2:17)
+#' branches(ex_taxmap, subset = n_obs > 1)
+#'
+#' # Return something besides taxon indexes
+#' branches(ex_taxmap, value = "taxon_names")
+#'
+#' @name branches
+NULL
+
+
+#' Get "internode" taxa
+#'
+#' Return the "internode" taxa for a [taxonomy()] or [taxmap()] object. An
+#' internode is any taxon with a single immediate supertaxon and a single
+#' immediate subtaxon. They can be removed from a tree without any loss of
+#' information on the relative relationship between remaining taxa. Can also be
+#' used to get the internodes of a subset of taxa.
+#' \preformatted{
+#' obj$internodes(subset = NULL, value = NULL)
+#' internodes(obj, subset = NULL, value = NULL)}
+#'
+#' @param obj The [taxonomy()] or [taxmap()] object containing taxon
+#'   information to be queried.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes used to subset the tree prior to
+#'   determining internodes. Default: All taxa in `obj` will be used. Any variable
+#'   name that appears in [all_names()] can be used as if it was a vector on its
+#'   own. Note that internodes are determined after the filtering, so a given
+#'   taxon might be a internode on the unfiltered tree, but not a internode
+#'   on the filtered tree.
+#' @param value What data to return. This is usually the name of column in a
+#'   table in `obj$data`. Any result of [all_names()] can be used, but it
+#'   usually only makes sense to use data that corresponds to taxa 1:1, such as
+#'   [taxon_ranks()]. By default, taxon indexes are returned.
+#'
+#' @family taxonomy indexing functions
+#'
+#' @return `character`
+#'
+#' @examples
+#' \dontrun{
+#'
+#' # Return indexes of branch taxa
+#' internodes(ex_taxmap)
+#'
+#' # Return indexes for a subset of taxa
+#' internodes(ex_taxmap, subset = 2:17)
+#' internodes(ex_taxmap, subset = n_obs > 1)
+#'
+#' # Return something besides taxon indexes
+#' internodes(ex_taxmap, value = "taxon_names")
+#'
+#' }
+#' @name internodes
+NULL
+
+
 #' Get subtaxa
 #'
 #' Return data for the subtaxa of each taxon in an [taxonomy()] or [taxmap()]
@@ -230,8 +319,9 @@ NULL
 #'
 #' @param obj The [taxonomy()] or [taxmap()] object containing taxon
 #'   information to be queried.
-#' @param subset (`character`) `taxon_ids` or taxon indexes for which supertaxa
-#'   will be returned. Default: All taxa in `obj` will be used.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes to find subtaxa for.
+#'   Default: All taxa in `obj` will be used. Any variable name that appears in
+#'   [all_names()] can be used as if it was a vector on its own.
 #' @param recursive (`logical` or `numeric`) If `FALSE`, only return the subtaxa
 #'   one rank below the target taxa. If `TRUE`, return all the subtaxa of every
 #'   subtaxa, etc. Positive numbers indicate the number of ranks below the
@@ -293,9 +383,9 @@ NULL
 #' @param obj The [taxonomy()] or [taxmap()] object containing taxon
 #'   information to be queried.
 #' @param func (`function`) The function to apply.
-#' @param subset (`character`) `taxon_ids` or indexes of
-#'   `taxon_data` for which supertaxa will be returned. Default: All taxa
-#' in `obj` will be used.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes to use.
+#'   Default: All taxa in `obj` will be used. Any variable name that appears in
+#'   [all_names()] can be used as if it was a vector on its own.
 #' @param recursive (`logical` or `numeric`) If `FALSE`, only return the
 #'   supertaxa one rank above the target taxa. If `TRUE`, return all the
 #'   supertaxa of every supertaxa, etc. Positive numbers indicate the number of
@@ -332,8 +422,9 @@ NULL
 #'
 #' @param obj The [taxonomy()] or [taxmap()] object containing taxon
 #'   information to be queried.
-#' @param subset (`character`) Taxon IDs for which stem taxa will be
-#'   returned. Default: All taxon in `obj` will be used.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes to find stems for.
+#'   Default: All taxa in `obj` will be used. Any variable name that appears in
+#'   [all_names()] can be used as if it was a vector on its own.
 #' @param value What data to return. This is usually the name of column in a
 #'   table in `obj$data`. Any result of `all_names(obj)` can be used, but it
 #'   usually only makes sense to data that corresponds to taxa 1:1, such as
@@ -357,6 +448,9 @@ NULL
 #' # Return something besides taxon indexes
 #' stems(ex_taxmap, value = "taxon_names")
 #'
+#' # Return a vector instead of a list
+#' stems(ex_taxmap, value = "taxon_names", simplify = TRUE)
+#'
 #' @name stems
 NULL
 
@@ -371,8 +465,9 @@ NULL
 #'
 #' @param obj The [taxonomy()] or [taxmap()] object containing taxon
 #'   information to be queried.
-#' @param subset (`character`) Taxon IDs for which leaf taxa will be
-#'   returned. Default: All taxon in `obj` will be used.
+#' @param subset Taxon IDs, TRUE/FALSE vector, or taxon indexes to find leaves for.
+#'   Default: All taxa in `obj` will be used. Any variable name that appears in
+#'   [all_names()] can be used as if it was a vector on its own.
 #' @param value What data to return. This is usually the name of column in a
 #'   table in `obj$data`. Any result of `all_names(obj)` can be used, but it
 #'   usually only makes sense to data that corresponds to taxa 1:1, such as
@@ -398,6 +493,41 @@ NULL
 
 #' Get classifications of taxa
 #'
+#' Get classifications of taxa in an object of type [taxonomy()] or [taxmap()]
+#' composed of data assoicated with taxa. Each classification is constructed by
+#' concatenating the data of the given taxon and all of its supertaxa.
+#' \preformatted{
+#' obj$classifications(value = "taxon_names", sep = ";")
+#' classifications(obj, value = "taxon_names", sep = ";")}
+#'
+#' @param obj ([taxonomy()] or [taxmap()])
+#' @param value What data to return. Any result of `all_names(obj)` can be used,
+#'   but it usually only makes sense to data that corresponds to taxa 1:1, such
+#'   as [taxon_ranks()]. By default, taxon indexes are returned.
+#' @param sep (`character` of length 1) The character(s) to place between
+#'   taxon IDs
+#'
+#' @return `character`
+#'
+#' @examples
+#'
+#' # Defualt settings returns taxon names separated by ;
+#' classifications(ex_taxmap)
+#'
+#' # Other values can be returned besides taxon names
+#' classifications(ex_taxmap, value = "taxon_ids")
+#'
+#' # The separator can also be changed
+#' classifications(ex_taxmap, value = "taxon_ranks", sep = "||")
+#'
+#' @family taxonomy data functions
+#'
+#' @name classifications
+NULL
+
+
+#' Get ID classifications of taxa
+#'
 #' Get classification strings of taxa in an object of type [taxonomy()] or [taxmap()]
 #' composed of taxon IDs. Each classification is constructed by concatenating
 #' the taxon ids of the given taxon and its supertaxa.
@@ -420,30 +550,6 @@ NULL
 NULL
 
 
-#' Get classifications of taxa
-#'
-#' Get classification strings of taxa in an object of type [taxonomy()] or [taxmap()]
-#' composed of taxon names. Each classification is constructed by concatenating
-#' the taxon names of the given taxon and its supertaxa.
-#' \preformatted{
-#' obj$name_classifications(sep = ";")
-#' name_classifications(obj, sep = ";")}
-#'
-#' @param obj ([taxonomy()] or [taxmap()])
-#' @param sep (`character` of length 1) The character(s) to place between
-#'   taxon names
-#'
-#' @return `character`
-#'
-#' @examples
-#' name_classifications(ex_taxmap)
-#'
-#' @family taxonomy data functions
-#'
-#' @name name_classifications
-NULL
-
-
 #' Get number of supertaxa
 #'
 #' Get number of supertaxa for each taxon in an object of type
@@ -462,6 +568,28 @@ NULL
 #' @family taxonomy data functions
 #'
 #' @name n_supertaxa
+NULL
+
+
+#' Get number of supertaxa
+#'
+#' Get number of immediate supertaxa (i.e. not supertaxa of supertaxa, etc) for
+#' each taxon in an object of type [taxonomy()] or [taxmap()]. This should
+#' always be either 1 or 0.
+#' \preformatted{
+#' obj$n_supertaxa_1()
+#' n_supertaxa_1(obj)}
+#'
+#' @param obj ([taxonomy()] or [taxmap()])
+#'
+#' @return \code{numeric}
+#'
+#' @examples
+#' n_supertaxa_1(ex_taxmap)
+#'
+#' @family taxonomy data functions
+#'
+#' @name n_supertaxa_1
 NULL
 
 
@@ -602,6 +730,39 @@ NULL
 NULL
 
 
+#' Get data in a taxonomy or taxmap object by name
+#'
+#' Given a vector of names, return a  table of the indicated data
+#' contained in a [taxonomy()] or [taxmap()] object.
+#' \preformatted{
+#' obj$get_data_frame(name = NULL, ...)
+#' get_data_frame(obj, name = NULL, ...)}
+#'
+#' Note: This function will not work with variables in datasets in [taxmap()]
+#' objects unless their rows correspond 1:1 with all taxa.
+#'
+#' @param obj A [taxonomy()] or [taxmap()]  object
+#' @param name (`character`) Names of data to return. If not supplied, return
+#'   all data listed in [all_names()].
+#' @param ... Passed to [all_names()]. Used to filter what kind of data is
+#'   returned (e.g. columns in tables or function output?) if `name` is not
+#'   supplied or what kinds are allowed if `name` is supplied.
+#'
+#' @return `data.frame`
+#'
+#' @examples
+#' # Get specific values
+#' get_data_frame(ex_taxonomy, c("taxon_names", "taxon_indexes", "is_stem"))
+#'
+#' # Get all values
+#' get_data_frame(ex_taxonomy)
+#'
+#' @family accessors
+#'
+#' @name get_data_frame
+NULL
+
+
 #' Get values of data used in expressions
 #'
 #' Get values available for
@@ -639,10 +800,10 @@ NULL
 #' a changed version would be returned, like most R functions.
 #' \preformatted{
 #' filter_taxa(obj, ..., subtaxa = FALSE, supertaxa = FALSE,
-#'   drop_obs = FALSE, reassign_obs = TRUE, reassign_taxa = TRUE,
+#'   drop_obs = TRUE, reassign_obs = TRUE, reassign_taxa = TRUE,
 #'   invert = FALSE)
 #' obj$filter_taxa(..., subtaxa = FALSE, supertaxa = FALSE,
-#'   drop_obs = FALSE, reassign_obs = TRUE, reassign_taxa = TRUE,
+#'   drop_obs = TRUE, reassign_obs = TRUE, reassign_taxa = TRUE,
 #'   invert = FALSE)}
 #'
 #' @param obj An object of class [taxonomy()] or [taxmap()]
@@ -674,7 +835,7 @@ NULL
 #'   [taxmap()] objects. If `TRUE`, observations assigned to removed taxa will
 #'   be reassigned to the closest supertaxon that passed the filter. If there
 #'   are no supertaxa of such an observation that passed the filter, they will
-#'   be filtered out if `drop_obs` is `FALSE`. This option can be either simply
+#'   be filtered out if `drop_obs` is `TRUE`. This option can be either simply
 #'   `TRUE`/`FALSE`, meaning that all data sets will be treated the same, or a
 #'   logical vector can be supplied with names corresponding one or more data
 #'   sets in `obj$data`. For example, `c(abundance = TRUE, stats = FALSE)` would
@@ -901,6 +1062,29 @@ NULL
 NULL
 
 
+#' Test if taxa are "internodes"
+#'
+#' Test if taxa are "internodes" in a [taxonomy()] or [taxmap()] object.  An
+#' internode is any taxon with a single immediate supertaxon and a single immediate
+#' subtaxon. They can be removed from a tree without any loss of information on
+#' the relative relationship between remaining taxa.
+#' \preformatted{
+#' obj$is_internode()
+#' is_internode(obj)}
+#'
+#' @param obj The [taxonomy()] or [taxmap()] object.
+#'
+#' @return A `logical` of length equal to the number of taxa.
+#'
+#' @family taxonomy data functions
+#'
+#' @examples
+#' is_internode(ex_taxmap)
+#'
+#' @name is_internode
+NULL
+
+
 #' Test if taxa are stems
 #'
 #' Test if taxa are stems in a [taxonomy()] or [taxmap()] object. Stems are taxa
@@ -989,8 +1173,7 @@ NULL
 #'
 #' @family taxonomy data functions
 #'
-#' @examples \dontrun{
-#'
+#' @examples
 #' # Mapping between two variables in `all_names(ex_taxmap)`
 #' map_data(ex_taxmap, from = taxon_names, to = n_legs > 0)
 #'
@@ -998,10 +1181,38 @@ NULL
 #' x = c("d" = "looks like a cat", "h" = "big scary cats",
 #'       "i" = "smaller cats", "m" = "might eat you", "n" = "Meow! (Feed me!)")
 #' map_data(ex_taxmap, from = taxon_names, to = x)
-#' }
+#'
 #' @name map_data
 NULL
 
+
+#' Create a mapping without NSE
+#'
+#' Creates a named vector that maps the values of two variables associated with
+#' taxa in a [taxonomy()] or [taxmap()] object without using Non-Standard
+#' Evaluation (NSE). Both values must be named by taxon ids. This is the same as
+#' [map_data()] without NSE and can be useful in some odd cases where NSE fails
+#' to work as expected.
+#' \preformatted{
+#' obj$map_data(from, to)
+#' map_data(obj, from, to)}
+#'
+#' @param obj The [taxonomy()] or [taxmap()] object.
+#' @param from The value used to name the output. There will be one output value
+#'   for each value in `from`.
+#' @param to The value returned in the output.
+#'
+#' @return A vector of `to` values named by values in `from`.
+#'
+#' @family taxonomy data functions
+#'
+#' @examples
+#' x = c("d" = "looks like a cat", "h" = "big scary cats",
+#'       "i" = "smaller cats", "m" = "might eat you", "n" = "Meow! (Feed me!)")
+#' map_data_(ex_taxmap, from = ex_taxmap$taxon_names(), to = x)
+#'
+#' @name map_data_
+NULL
 
 
 #' Replace taxon ids
@@ -1021,4 +1232,19 @@ NULL
 #'
 #' replace_taxon_ids(ex_taxmap, seq_len(length(ex_taxmap$taxa)))
 #' }
+NULL
+
+
+#' Remove redundant parts of taxon names
+#'
+#' Remove the names of parent taxa in the begining of their children's names in a \code{taxonomy} or \code{taxmap} object.
+#' This is useful for removing genus names in species binomials.
+#' \preformatted{
+#' obj$remove_redundant_names()
+#' remove_redundant_names(obj)}
+#'
+#' @param obj A \code{taxonomy} or \code{taxmap} object
+#'
+#' @return A \code{taxonomy} or \code{taxmap} object
+#' @name remove_redundant_names
 NULL

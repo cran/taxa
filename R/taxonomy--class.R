@@ -178,15 +178,24 @@ Taxonomy <- R6::R6Class(
 
       # Run any functions and return their results instead
       is_func <- vapply(output, is.function, logical(1))
-      output[is_func] <- lapply(output[is_func], function(f) {
-        if (length(formals(f)) == 0) {
-          return(f())
+      output[is_func] <- lapply(which(is_func), function(i) {
+        if (length(formals(output[[i]])) > 0 && ! names(output[i]) %in% names(self)) {
+          return(output[[i]](self))
         } else {
-          return(f(self))
+          return(output[[i]]())
         }
       })
 
       return(output)
+    },
+
+    get_data_frame = function(...) {
+      x <- self$get_data(...)
+      if (length(unique(vapply(x, length, 1))) == 1) {
+        tibble::as_tibble(data.frame(x, stringsAsFactors = FALSE))
+      } else {
+        stop("variables not of equal length")
+      }
     },
 
     # Get a list of all data in an expression used with non-standard evaluation
@@ -302,13 +311,15 @@ Taxonomy <- R6::R6Class(
       output <- unname(subset[is_root])
 
       # Look up values
-      if (!is.null(value)) {
+      if (! is.null(value)) {
         possible_values <- self$get_data(value)[[1]]
         if (is.null(names(possible_values))) {
           output <- possible_values[output]
         } else {
           output <- possible_values[self$taxon_ids()[output]]
         }
+      } else {
+        names(output) <- self$taxon_ids()[output]
       }
 
       return(output)
@@ -384,6 +395,75 @@ Taxonomy <- R6::R6Class(
       return(output)
     },
 
+
+    branches = function(subset = NULL, value = NULL) {
+      # non-standard argument evaluation
+      data_used <- eval(substitute(self$data_used(subset)))
+      subset <- rlang::eval_tidy(rlang::enquo(subset), data = data_used)
+      subset <- private$parse_nse_taxon_subset(subset)
+
+      # Return empty list if `subset` has no values
+      if (length(subset) == 0) {
+        return(vector(mode = class(self$get_data(value)[[1]])))
+      }
+
+      # Prefilter subset
+      if (length(subset) == length(self$taxa) && all(subset == seq_len(length(self$taxon_ids())))) {
+        filtered_self <- self
+      } else {
+        filtered_self <- filter_taxa(self, subset)
+      }
+
+      # Get branches
+      output <- which(filtered_self$is_branch())
+
+      # Look up values
+      if (!is.null(value)) {
+        possible_values <- self$get_data(value)[[1]]
+        if (is.null(names(possible_values))) {
+          output <- possible_values[output]
+        } else {
+          output <- possible_values[self$taxon_ids()[output]]
+        }
+      }
+
+      return(output)
+    },
+
+
+    internodes = function(subset = NULL, value = NULL) {
+      # non-standard argument evaluation
+      data_used <- eval(substitute(self$data_used(subset)))
+      subset <- rlang::eval_tidy(rlang::enquo(subset), data = data_used)
+      subset <- private$parse_nse_taxon_subset(subset)
+
+      # Return empty list if `subset` has no values
+      if (length(subset) == 0) {
+        return(vector(mode = class(self$get_data(value)[[1]])))
+      }
+
+      # Prefilter subset
+      if (length(subset) == length(self$taxa) && all(subset == seq_len(length(self$taxon_ids())))) {
+        filtered_self <- self
+      } else {
+        filtered_self <- filter_taxa(self, subset)
+      }
+
+      # Get branches
+      output <- which(filtered_self$is_internode())
+
+      # Look up values
+      if (!is.null(value)) {
+        possible_values <- self$get_data(value)[[1]]
+        if (is.null(names(possible_values))) {
+          output <- possible_values[output]
+        } else {
+          output <- possible_values[self$taxon_ids()[output]]
+        }
+      }
+
+      return(output)
+    },
 
 
     subtaxa = function(subset = NULL, recursive = TRUE,
@@ -498,21 +578,24 @@ Taxonomy <- R6::R6Class(
       return(output)
     },
 
-
-    id_classifications = function(sep = ";") {
+    classifications = function(value = "taxon_names", sep = ";") {
       vapply(self$supertaxa(recursive = TRUE, include_input = TRUE,
-                            value = "taxon_ids", na = FALSE),
+                            value = value, na = FALSE),
              function(x) paste0(rev(x), collapse = sep), character(1))
     },
 
-    name_classifications = function(sep = ";") {
-      vapply(self$supertaxa(recursive = TRUE, include_input = TRUE,
-                            value = "taxon_names", na = FALSE),
-             function(x) paste0(rev(x), collapse = sep), character(1))
+    id_classifications = function(sep = ";") {
+      self$classifications(value = "taxon_ids", sep = sep)
     },
 
     n_supertaxa = function() {
       vapply(self$supertaxa(recursive = TRUE, include_input = FALSE,
+                            value = "taxon_indexes", na = FALSE),
+             length, numeric(1))
+    },
+
+    n_supertaxa_1 = function() {
+      vapply(self$supertaxa(recursive = FALSE, include_input = FALSE,
                             value = "taxon_indexes", na = FALSE),
              length, numeric(1))
     },
@@ -545,6 +628,11 @@ Taxonomy <- R6::R6Class(
 
     is_branch = function() {
       stats::setNames(! (self$is_root() | self$is_leaf() | self$is_stem()),
+                      self$taxon_ids())
+    },
+
+    is_internode = function() {
+      stats::setNames(self$n_subtaxa_1() == 1 & self$n_supertaxa_1() == 1,
                       self$taxon_ids())
     },
 
@@ -721,9 +809,9 @@ Taxonomy <- R6::R6Class(
       # non-standard argument evaluation
       data_used <- eval(substitute(self$data_used(taxon_weight, obs_weight)))
       taxon_weight <- rlang::eval_tidy(rlang::enquo(taxon_weight),
-                                          data = data_used)
+                                       data = data_used)
       obs_weight <- rlang::eval_tidy(rlang::enquo(obs_weight),
-                                        data = data_used)
+                                     data = data_used)
 
       # Calculate observation component of taxon weights
       if (is.null(obs_weight) || !is_taxmap) {
@@ -779,7 +867,7 @@ Taxonomy <- R6::R6Class(
       # check that arguments have taxon ids and evaluate
       validate_and_eval <- function(unparsed) {
         parsed <- rlang::eval_tidy(rlang::enquo(unparsed),
-                                      data = data_used)
+                                   data = data_used)
         if (! private$valid_taxon_ids(names(parsed))) {
           stop(paste0("The value `", deparse(match.call()$unparsed),
                       "` is not named by taxon id or contains invalid ids. ",
@@ -809,8 +897,11 @@ Taxonomy <- R6::R6Class(
       }
 
       # Map values using taxon ids
-      stats::setNames(to_data[match(names(from_data), names(to_data))],
-                      from_data)
+      self$map_data_(from = from_data, to = to_data)
+    },
+
+    map_data_ = function(from, to) {
+      stats::setNames(to[match(names(from), names(to))], from)
     },
 
     replace_taxon_ids = function(new_ids) {
@@ -853,6 +944,18 @@ Taxonomy <- R6::R6Class(
 
       # Return modified object
       return(self)
+    },
+
+    remove_redundant_names = function() {
+      new_names <- vapply(supertaxa(self, recursive = FALSE, include_input = TRUE),
+                          function(x) gsub(self$taxon_names()[x[1]],
+                                           pattern = paste0("^", self$taxon_names()[x[2]], "[_ ]+"),
+                                           replacement = ""),
+                          character(1))
+      lapply(seq_along(new_names), function(i) {
+        self$taxa[[i]]$name$name <- new_names[i]
+      })
+      return(self)
     }
 
     # pop = function(ranks = NULL, names = NULL, ids = NULL) {
@@ -874,10 +977,20 @@ Taxonomy <- R6::R6Class(
   ),
 
   private = list(
-    nse_accessible_funcs = c("taxon_names", "taxon_ids", "taxon_indexes",
-                             "n_supertaxa", "n_subtaxa", "n_subtaxa_1",
-                             "taxon_ranks", "is_root", "is_stem", "is_branch",
-                             "is_leaf"),
+    nse_accessible_funcs = c("taxon_names",
+                             "taxon_ids",
+                             "taxon_indexes",
+                             "classifications",
+                             "n_supertaxa",
+                             "n_supertaxa_1",
+                             "n_subtaxa",
+                             "n_subtaxa_1",
+                             "taxon_ranks",
+                             "is_root",
+                             "is_stem",
+                             "is_branch",
+                             "is_leaf",
+                             "is_internode"),
 
     make_graph = function() {
       apply(self$edge_list, 1, paste0, collapse = "->")
@@ -898,33 +1011,35 @@ Taxonomy <- R6::R6Class(
     # Takes one ore more NSE expressions and resolves them to indexes of edgelist rows
     # Each expression can resolve to taxon ids, edgelist indexes, or logical.
     parse_nse_taxon_subset = function(...) {
-      # non-standard argument evaluation
-      selection <- rlang::eval_tidy(rlang::quos(...),
-                                       data = self$data_used(...))
+      # Non-standard argument evaluation
+      selection <- lapply(rlang::quos(...), rlang::eval_tidy, data = self$data_used(...))
 
-      # convert taxon_ids to logical
-      is_char <- vapply(selection, is.character, logical(1))
-      selection[is_char] <- lapply(selection[is_char],
-                                   function(x) self$taxon_ids() %in% x)
-
-      # convert indexes to logical
-      is_index <- vapply(selection, is.numeric, logical(1))
-      selection[is_index] <- lapply(selection[is_index],
-                                    function(x) 1:nrow(self$edge_list) %in% x)
-
-      # combine filters
-      selection <- Reduce(`&`, selection)
-
-      # default to all taxa if no selection is provided
-      if (is.null(selection)) {
-        selection <- rep(TRUE, length(self$taxon_ids()))
+      # Default to all taxa if no selection is provided
+      if (all(vapply(selection, is.null, logical(1)))) {
+        return(self$taxon_indexes())
       }
 
-      # convert to indexes, named by taxon id
-      names(selection) <- self$taxon_ids()
-      selection <- which(selection)
+      # Convert taxon_ids to indexes
+      is_char <- vapply(selection, is.character, logical(1))
+      selection[is_char] <- lapply(selection[is_char],
+                                   function(x) match(x, self$taxon_ids()))
 
-      return(selection)
+      # Convert logical to indexes
+      is_tf <- vapply(selection, is.logical, logical(1))
+      selection[is_tf] <- lapply(selection[is_tf],
+                                 function(x) which(x))
+
+      # Combine index lists.
+      intersect_with_dups <- function(a, b) {
+        #taken from http://r.789695.n4.nabble.com/intersect-without-discarding-duplicates-td2225377.html
+        rep(sort(intersect(a, b)), pmin(table(a[a %in% b]), table(b[b %in% a])))
+      }
+      output <- Reduce(intersect_with_dups, selection)
+
+      # Name by taxon id
+      names(output) <- self$taxon_ids()[output]
+
+      return(output)
     },
 
     # check if a set of putative taxon ids are valid.
