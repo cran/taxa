@@ -40,9 +40,9 @@ Return data for the subtaxa of each taxon in an \code{\link[=taxonomy]{taxonomy(
 object.
 \preformatted{
 obj$subtaxa(subset = NULL, recursive = TRUE,
-  simplify = FALSE, include_input = FALSE, value = NULL)
+  simplify = FALSE, include_input = FALSE, value = "taxon_indexes")
 subtaxa(obj, subset = NULL, recursive = TRUE,
-  simplify = FALSE, include_input = FALSE, value = NULL)}
+  simplify = FALSE, include_input = FALSE, value = "taxon_indexes")}
 }
 \examples{
 # return the indexes for subtaxa for each taxon
@@ -52,7 +52,7 @@ subtaxa(ex_taxmap)
 subtaxa(ex_taxmap, subset = 1:3)
 
 # Only return data for some taxa using taxon ids
-subtaxa(ex_taxmap, subset = c("3", "4"))
+subtaxa(ex_taxmap, subset = c("d", "e"))
 
 # Only return data for some taxa using logical tests
 subtaxa(ex_taxmap, subset = taxon_ranks == "genus")

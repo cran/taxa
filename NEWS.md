@@ -1,3 +1,34 @@
+Current
+=======
+
+### Improvements
+
+* `parse_tax_data` can now incorperate rank information which can be accessed by `result$taxon_ranks()` ([issue #113](https://github.com/ropensci/taxa/issues/113)).
+* `taxmap` print methods now have more information and color ([issue #124](https://github.com/ropensci/taxa/issues/124)).
+* Added `leaves_apply` function that works like `subtaxa_apply`, but on leaves ([issue #126](https://github.com/ropensci/taxa/issues/126)).
+* Functions with a `value` option now return named taxon indexes by default, instead of unnamed taxon indexes ([issue #128](https://github.com/ropensci/taxa/issues/128)).
+* `lookup_tax_data` and `extract_tax_data` can now use "fuzzy" matching when looking up taxon names, so taxon names can be mispelled and still be founds.
+* `lookup_tax_data` and `extract_tax_data` now only look up unique sequence IDs, improving download speed.
+* `filter_obs` now can filter out observations in non-target data sets that are assocaited with taxa that are removed when `drop_taxa = TRUE` ([issue #143](https://github.com/ropensci/taxa/issues/143)). This is done using `filter_taxa`, so the `supertaxa`, `subtaxa`, and `reassign_obs` options are now available to `filter_obs` to control how taxon removal is done.
+* `lookup_tax_data` and `extract_tax_data` now have progress bars instead of printing lots of text when downloading information.
+* `mutate_obs` now creates new vector/tables if the data set specified does not exist ([issue #121](https://github.com/ropensci/taxa/issues/124)).
+* Add `filter_taxa` option `keep_order` that preserves input taxon order. It is `TRUE` by default, which changes how it used to work. Set to `FALSE` for old behavior.
+* Using NSE with an ambiguous name (appears in multiple datasets) now produces a warning ([issue #153](https://github.com/ropensci/taxa/issues/153)).
+
+### Changes
+
+* The `simplify` option in many functions is now always handled the same way: If all vectors in a list are names, then unique key-value pairs are returned. Otherwise, names are ignored and unique values are returned.
+* The `leaves` option now behaves like `subtaxa`, returning all leaves for each taxon. The old behavior can be replicated by setting the new `simplify` option to `TRUE` ([issue #127](https://github.com/ropensci/taxa/issues/127)).
+
+### Bug fixes
+
+* `filter_taxa` now has better error messages for invalid inputs ([issue #117](https://github.com/ropensci/taxa/issues/117)).
+* Fix a bug that caused an error in `filter_taxa` when no taxa pass filter ([issue #116](https://github.com/ropensci/taxa/issues/116)).
+* Fixed a bug in `parse_tax_data` when `class_key` was not named ([issue #131](https://github.com/ropensci/taxa/issues/131)).
+* Fixed bug in `hierarchy` print method with `taxon_id` class was not used ([issue #138](https://github.com/ropensci/taxa/issues/138)).
+* Fixed bug in `parse_tax_data` when all classification data is `NA.`
+* Fixed bug in `taxmap` print method when printing zero-length lists and vectors ([issue #148](https://github.com/ropensci/taxa/issues/148)).
+
 taxa 0.2.0
 ==========
 

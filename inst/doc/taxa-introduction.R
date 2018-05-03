@@ -8,7 +8,7 @@ eval = TRUE
 )
 
 ## ----results='asis', echo = FALSE----------------------------------------
-flowchart_path <- "taxa_class_ideas.png"
+flowchart_path <- "class_diagram.png"
 width <- 718
 if (knitr:::child_mode()) { # if run as a child
   flowchart_path <- file.path("vignettes", flowchart_path)
@@ -64,12 +64,23 @@ taxon_id(12345, database = "ncbi")
 ))
 
 ## ------------------------------------------------------------------------
-(x <- taxon(
+grass <- taxon(
   name = taxon_name("Poa annua"),
   rank = taxon_rank("species"),
   id = taxon_id(93036)
-))
-taxa(x, x, x)
+)
+mammalia <- taxon(
+  name = taxon_name("Mammalia"),
+  rank = taxon_rank("class"),
+  id = taxon_id(9681)
+)
+plantae <- taxon(
+  name = taxon_name("Plantae"),
+  rank = taxon_rank("kingdom"),
+  id = taxon_id(33090)
+)
+
+taxa(grass, mammalia, plantae)
 
 ## ------------------------------------------------------------------------
 x <- taxon(
@@ -157,7 +168,13 @@ supertaxa(tax, subset = "m", value = "taxon_names")
 supertaxa(tax, subset = "m", value = "taxon_ranks")
 
 ## ------------------------------------------------------------------------
-supertaxa(tax, subset = taxon_ranks == "genus", value = "taxon_names")
+supertaxa(tax, subset = taxon_ranks == "genus", value = "taxon_ranks")
+
+## ------------------------------------------------------------------------
+taxon_ranks(tax)
+
+## ------------------------------------------------------------------------
+supertaxa(tax, subset = taxon_ranks(tax) == "genus", value = "taxon_ranks")
 
 ## ------------------------------------------------------------------------
 subtaxa(tax, value = "taxon_names")
@@ -209,7 +226,7 @@ get_data(my_taxmap)
 filter_taxa(my_taxmap, startsWith(taxon_names, "t"))
 
 ## ----eval=FALSE----------------------------------------------------------
-#  filter_taxa(my_taxmap, startsWith(taxon_names, "t"), "r")
+#  filter_taxa(my_taxmap, startsWith(taxon_names, "t"), c("b", "r", "o"))
 
 ## ------------------------------------------------------------------------
 filter_taxa(my_taxmap, startsWith(taxon_names, "t"), supertaxa = TRUE)
@@ -222,7 +239,7 @@ filter_obs(my_taxmap, "info", dangerous == TRUE, drop_taxa = TRUE)
 
 ## ------------------------------------------------------------------------
 set.seed(1)
-sample_n_taxa(my_taxmap, 3)
+sample_n_taxa(my_taxmap, 3) # "3" here is a taxon index in the edge list
 set.seed(1)
 sample_n_taxa(my_taxmap, 3, supertaxa = TRUE)
 
@@ -238,7 +255,7 @@ select_obs(my_taxmap, "info", dangerous)
 # Selecting a column by index
 select_obs(my_taxmap, "info", 3)
 
-# Selecting a column by regular expressions
+# Selecting a column by regular expressions (i.e. TRUE/FALSE)
 select_obs(my_taxmap, "info", matches("^dange"))
 
 ## ------------------------------------------------------------------------

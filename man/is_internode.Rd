@@ -19,7 +19,11 @@ obj$is_internode()
 is_internode(obj)}
 }
 \examples{
+# Test for which taxon IDs correspond to internodes
 is_internode(ex_taxmap)
+
+# Filter out internodes
+filter_taxa(ex_taxmap, ! is_internode)
 
 }
 \seealso{
@@ -28,6 +32,7 @@ Other taxonomy data functions: \code{\link{classifications}},
   \code{\link{is_branch}}, \code{\link{is_leaf}},
   \code{\link{is_root}}, \code{\link{is_stem}},
   \code{\link{map_data_}}, \code{\link{map_data}},
+  \code{\link{n_leaves_1}}, \code{\link{n_leaves}},
   \code{\link{n_subtaxa_1}}, \code{\link{n_subtaxa}},
   \code{\link{n_supertaxa_1}}, \code{\link{n_supertaxa}},
   \code{\link{taxon_ids}}, \code{\link{taxon_indexes}},

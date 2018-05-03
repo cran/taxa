@@ -39,14 +39,19 @@ Apply a function to the supertaxa for each taxon. This is similar
 to using \code{\link[=supertaxa]{supertaxa()}} with \code{\link[=lapply]{lapply()}} or \code{\link[=sapply]{sapply()}}.
 \preformatted{
 obj$supertaxa_apply(func, subset = NULL, recursive = TRUE,
-  simplify = FALSE, include_input = FALSE, value = NULL,
+  simplify = FALSE, include_input = FALSE, value = "taxon_indexes",
   na = FALSE, ...)
 supertaxa_apply(obj, func, subset = NULL, recursive = TRUE,
-  simplify = FALSE, include_input = FALSE, value = NULL,
+  simplify = FALSE, include_input = FALSE, value = "taxon_indexes",
   na = FALSE, ....)}
 }
 \examples{
+# Get number of supertaxa that each taxon is contained in
+supertaxa_apply(ex_taxmap, length)
+
 # Get classifications for each taxon
+# Note; this can be done with `classifications()` easier
 supertaxa_apply(ex_taxmap, paste, collapse = ";", include_input = TRUE,
                 value = "taxon_names")
+
 }

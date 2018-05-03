@@ -11,6 +11,15 @@ information to be queried.}
 Default: All taxa in \code{obj} will be used. Any variable name that appears in
 \code{\link[=all_names]{all_names()}} can be used as if it was a vector on its own.}
 
+\item{recursive}{(\code{logical} or \code{numeric}) If \code{FALSE}, only return the
+leaves if they occur one rank below the target taxa. If \code{TRUE}, return all of the
+leaves for each taxon. Positive numbers indicate the number of
+recursions (i.e. number of ranks below the target taxon to return). \code{1} is
+equivalent to \code{FALSE}. Negative numbers are equivalent to \code{TRUE}.}
+
+\item{simplify}{(\code{logical}) If \code{TRUE}, then combine all the results into a
+single vector of unique values.}
+
 \item{value}{What data to return. This is usually the name of column in a
 table in \code{obj$data}. Any result of \code{all_names(obj)} can be used, but it
 usually only makes sense to data that corresponds to taxa 1:1, such as
@@ -23,8 +32,8 @@ usually only makes sense to data that corresponds to taxa 1:1, such as
 Return the leaf taxa for a \code{\link[=taxonomy]{taxonomy()}} or \code{\link[=taxmap]{taxmap()}} object. Leaf taxa are taxa
 with no subtaxa.
 \preformatted{
-obj$leaves(subset = NULL, value = NULL)
-leaves(obj, subset = NULL, value = NULL)}
+obj$leaves(subset = NULL, recursive = TRUE, simplify = FALSE, value = "taxon_indexes")
+leaves(obj, subset = NULL, recursive = TRUE, simplify = FALSE, value = "taxon_indexes")}
 }
 \examples{
 # Return indexes of leaf taxa
@@ -32,9 +41,17 @@ leaves(ex_taxmap)
 
 # Return indexes for a subset of taxa
 leaves(ex_taxmap, subset = 2:17)
+leaves(ex_taxmap, subset = taxon_names == "Plantae")
 
 # Return something besides taxon indexes
 leaves(ex_taxmap, value = "taxon_names")
+leaves(ex_taxmap, subset = taxon_ranks == "genus", value = "taxon_names")
+
+# Return a vector of all unique values
+leaves(ex_taxmap, value = "taxon_names", simplify = TRUE)
+
+# Only return leaves for their direct supertaxa
+leaves(ex_taxmap, value = "taxon_names", recursive = FALSE)
 
 }
 \seealso{
