@@ -11,13 +11,15 @@
 #'   vectors.
 #' @param .list An alternate to the `...` input. Any number of object of class
 #'   [hierarchy()] or character vectors in a list. Cannot be used with `...`.
+#' @inheritParams parse_raw_heirarchies_to_taxonomy
+#'
 #' @return An `R6Class` object of class `Taxonomy`
 #' @family classes
 #'
 #' @template taxonomyegs
 
-taxonomy <- function(..., .list = NULL) {
-  Taxonomy$new(..., .list = .list)
+taxonomy <- function(..., .list = NULL, named_by_rank = FALSE) {
+  Taxonomy$new(..., .list = .list, named_by_rank = named_by_rank)
 }
 
 Taxonomy <- R6::R6Class(
@@ -72,16 +74,16 @@ Taxonomy <- R6::R6Class(
 
     # --------------------------------------------------------------------------
     # Constructor
-    initialize = function(..., .list = NULL) {
+    initialize = function(..., .list = NULL, named_by_rank = FALSE) {
       # Get intput
       input <- get_dots_or_list(..., .list = .list)
 
-      # If character strings are supplied, convert to hierarcies
-      char_input_index <- which(lapply(input, class) == "character")
-      input[char_input_index] <- lapply(input[char_input_index], hierarchy)
-
       # Parse input
-      parsed_data <- parse_heirarchies_to_taxonomy(input)
+      if (length(input) > 0 && "Hierarchy" %in% class(input[[1]])) {
+        parsed_data <- parse_heirarchies_to_taxonomy(input)
+      } else {
+        parsed_data <- parse_raw_heirarchies_to_taxonomy(input, named_by_rank = named_by_rank)
+      }
       self$taxa <- parsed_data$taxa
       self$edge_list <- parsed_data$edge_list
       self$input_ids <- parsed_data$input_ids
@@ -851,7 +853,7 @@ Taxonomy <- R6::R6Class(
           }
 
           obs_subset <- data_taxon_ids %in% self$taxon_ids()[taxa_subset]
-          private$remove_obs(dataset = my_index,
+          private$remove_obs(data = my_index,
                              indexes = obs_subset,
                              unname_only = ! drop_obs[my_index])
         }
@@ -1050,7 +1052,7 @@ Taxonomy <- R6::R6Class(
         self$taxa[[i]]$name$name <- new_names[i]
       })
       return(self)
-    }
+    },
 
     # pop = function(ranks = NULL, names = NULL, ids = NULL) {
     #   taxa_rks <- vapply(self$taxa, function(x) x$rank$name, "")
@@ -1067,6 +1069,117 @@ Taxonomy <- R6::R6Class(
     #   self$input_ids <- parsed_data$input_ids
     #   return(self)
     # }
+
+    # --------------------------------------------------------------------------
+    # Return taxonomy information in a taxon x rank table
+    taxonomy_table = function(subset = NULL, value = "taxon_names",
+                              use_ranks = NULL, add_id_col = FALSE) {
+
+      # non-standard argument evaluation of subset
+      data_used <- eval(substitute(self$data_used(subset)))
+      subset <- rlang::eval_tidy(rlang::enquo(subset), data = data_used)
+      if (is.null(subset)) {
+        subset <- self$leaves(simplify = TRUE)
+      }
+      subset <- private$parse_nse_taxon_subset(subset)
+
+      # Get supertaxa of each taxon, named by ranks
+      obj_has_ranks <- ! all(is.na(self$taxon_ranks()))
+      class_list <- self$supertaxa(subset = subset, value = value,
+                              include_input = TRUE)
+      if (is.null(use_ranks)) {
+        if (obj_has_ranks) {
+          rank_names <- self$supertaxa(subset = subset, value = "taxon_ranks",
+                                  include_input = TRUE)
+          ranks_used <- rev(rank_names[[which.max(vapply(rank_names, length, numeric(1)))]])
+        } else {
+          rank_names <- self$supertaxa(subset = subset, value = "n_supertaxa",
+                                  include_input = TRUE)
+          rank_names <- lapply(rank_names, function(x) paste0("rank_", x + 1))
+          ranks_used <- rev(rank_names[[which.max(vapply(rank_names, length, numeric(1)))]])
+        }
+      } else if (is.logical(use_ranks)) {
+        if (use_ranks == TRUE) {
+          if (obj_has_ranks) {
+            rank_names <- self$supertaxa(subset = subset, value = "taxon_ranks",
+                                    include_input = TRUE)
+            ranks_used <- rev(rank_names[[which.max(vapply(rank_names, length, numeric(1)))]])
+          } else {
+            stop(call. = FALSE, "option `use_ranks is `TRUE`, but there is no rank information.")
+          }
+        } else {
+          rank_names <- self$supertaxa(subset = subset, value = "n_supertaxa",
+                                  include_input = TRUE)
+          rank_names <- lapply(rank_names, function(x) paste0("rank_", x + 1))
+          ranks_used <- rev(rank_names[[which.max(vapply(rank_names, length, numeric(1)))]])
+        }
+      } else if (is.character(use_ranks)) {
+        rank_names <- self$supertaxa(subset = subset, value = "taxon_ranks",
+                                include_input = TRUE)
+        ranks_used <- use_ranks
+      } else if (is.numeric(use_ranks)) {
+        rank_names <- self$supertaxa(subset = subset, value = "n_supertaxa",
+                                include_input = TRUE)
+        rank_names <- lapply(rank_names, function(x) paste0("rank_", x + 1))
+        ranks_used <-  rev(paste0("rank_", use_ranks))
+      } else {
+        stop(call. = FALSE, "Invalid `use_ranks` input. See ?taxonomy_table for valid inputs.")
+      }
+      class_list <- lapply(seq_len(length(class_list)),
+                           function(i) stats::setNames(class_list[[i]], rank_names[[i]]))
+
+      # Check for unused ranks
+      all_ranks <- unique(unlist(rank_names))
+      unused_ranks <- all_ranks[! all_ranks %in% ranks_used]
+      if (length(unused_ranks) > 0) {
+        message('The following ranks will not be included because the order cannot be determined:\n',
+                limited_print(unused_ranks, prefix = "  ", type = "silent"),
+                'See the section on the `use_ranks` option in ?taxonomy_table to if you want to change which ranks are used.')
+      }
+
+      # Make table
+      output <- do.call(rbind, lapply(class_list, function(x) x[ranks_used]))
+      colnames(output) <- ranks_used
+
+      # Add taxon ID column
+      if (add_id_col) {
+        output <- cbind(data.frame(stringsAsFactors = FALSE,
+                                   taxon_ids = self$taxon_ids()[subset]),
+                        output)
+      }
+
+      return(dplyr::as_tibble(output))
+    },
+
+    # Make text print out of a tree
+    print_tree = function(value = "taxon_names") {
+        # Make tree with taxon IDs to avoid potential loop errors
+        tree_data <- data.frame(stringsAsFactors = FALSE,
+                                taxa = self$taxon_ids(),
+                                subtaxa = I(self$subtaxa(recursive = FALSE,
+                                                         value = "taxon_ids")))
+        trees <- lapply(self$roots(value = "taxon_ids"), function(my_root) {
+          cli::tree(tree_data, root = my_root)
+        })
+        trees <- unlist(trees)
+
+        # Replace taxon ids with other value
+        if (value != "taxon_ids") {
+          value <- self$get_data(value)[[1]]
+          ids_in_tree <- sub(trees, pattern = "^[\u2502 \u251C\u2500\u2514]*", replacement = "")
+          trees <- vapply(seq_len(length(trees)), FUN.VALUE = character(1),
+                          function(i) {
+                            sub(trees[i], pattern = ids_in_tree[i],
+                                replacement = value[ids_in_tree[i]])
+
+                          })
+        }
+
+        # Return tree
+        # cat(paste0(trees, collapse = "\n"))
+        class(trees) <- unique(c("tree", "character"))
+        return(trees)
+    }
 
   ),
 

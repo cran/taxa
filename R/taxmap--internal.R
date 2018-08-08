@@ -172,14 +172,14 @@ check_taxmap_data <- function(obj) {
   #  Check that column names are not the names of functions
   data_names <- all_names(obj, funcs = FALSE, builtin_funcs = FALSE)
   suspect_names <- data_names[data_names %in% all_functions()]
-  if (length(suspect_names) > 0) {
-    warning(paste0("Naming table columns/vectors/lists the same name as ",
-                   "functions can sometimes interfere with non-standard ",
-                   "evaluation. The following data shares names with ",
-                   "functions:\n", limited_print(names(suspect_names),
-                                                 type = "silent")),
-            call. = FALSE)
-  }
+  # if (length(suspect_names) > 0) {
+  #   warning(paste0("Naming table columns/vectors/lists the same name as ",
+  #                  "functions can sometimes interfere with non-standard ",
+  #                  "evaluation. The following data shares names with ",
+  #                  "functions:\n", limited_print(names(suspect_names),
+  #                                                type = "silent")),
+  #           call. = FALSE)
+  # }
 
   return(invisible(NULL))
 }
@@ -247,4 +247,52 @@ progress_lapply <- function(X, FUN, progress = interactive(), ...) {
   }
 
   return(output)
+}
+
+
+#' Check that a unknown object can be used with taxmap
+#'
+#' Check that a unknown object can be assigned taxon IDs and filtered.
+#'
+#' @param obj
+#'
+#' @return TRUE/FALSE
+#'
+#' @keywords internal
+can_be_used_in_taxmap <- function(obj) {
+  # Check if is one-dimension, with a known length (i.e. works with length function)
+  obj_length <- tryCatch({length(obj)}, error = function(e) return(NA))
+  if (is.na(obj_length)) {
+    return(FALSE)
+  }
+
+  # Can be subset (i.e. [ changes the value of length)
+  if (obj_length > 0) {
+    new_length <- tryCatch({length(obj[numeric(0)])}, error = function(e) return(NA))
+    if (is.na(new_length) || new_length != 0) {
+      return(FALSE)
+    }
+    new_length <- tryCatch({length(obj[c(1, 1)])}, error = function(e) return(NA))
+    if (is.na(new_length) || new_length != 2) {
+      return(FALSE)
+    }
+  }
+
+  # Has per-element names that can be set (i.e. works with names and names<- function)
+  my_names <- tryCatch({names(obj)}, error = function(e) return(NA))
+  if (length(my_names) == 1 && is.na(my_names)) {
+    return(FALSE)
+  }
+  if (obj_length > 0) {
+    new_names <- tryCatch({
+      names(obj)[1] <- "name_test"
+      names(obj)[1]
+    },
+    error = function(e) return(NA))
+    if (new_names != "name_test") {
+      return(FALSE)
+    }
+  }
+
+  return(TRUE)
 }

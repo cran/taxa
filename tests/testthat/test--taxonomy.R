@@ -465,3 +465,22 @@ test_that("removing redundant names", {
   result <- remove_redundant_names(x)
   expect_true(all(c("tuberosum", "lycopersicum") %in% taxon_names(result)))
 })
+
+
+test_that("taxonomy can be converted to tables", {
+  x <- taxonomy(tiger, cougar, mole, tomato, potato,
+                unidentified_plant, unidentified_animal)
+  expect_message(result <- taxonomy_table(x),
+                 "The following ranks will not be included")
+  expect_equal(colnames(result), c("class", "family", "genus", "species"))
+  result <- taxonomy_table(x, use_ranks = FALSE)
+  expect_equal(colnames(result), c("rank_1", "rank_2", "rank_3", "rank_4"))
+})
+
+
+test_that("print_tree works", {
+  x <- taxonomy(tiger, cougar, mole, tomato, potato,
+                unidentified_plant, unidentified_animal)
+  expect_equal(print_tree(x)[1], "Mammalia")
+})
+

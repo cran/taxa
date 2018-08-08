@@ -1,8 +1,8 @@
 #' Convert one or more data sets to taxmap
 #'
-#' Parses taxonomic information and associated data and stores it in a
-#' [taxa::taxmap()] object. [Taxonomic classifications](https://en.wikipedia.org/wiki/Taxonomy_(biology)#Classifying_organisms)
-#' must be present somewhere in the first input.
+#' Reads taxonomic information and associated data in tables, lists, and vectors
+#' and stores it in a [taxa::taxmap()] object. [Taxonomic classifications](https://en.wikipedia.org/wiki/Taxonomy_(biology)#Classifying_organisms)
+#' must be present.
 #'
 #' @param tax_data A table, list, or vector that contains the names of taxa that
 #'   represent [taxonomic classifications](https://en.wikipedia.org/wiki/Taxonomy_(biology)#Classifying_organisms).
@@ -54,6 +54,8 @@
 #'   `class_sep` option can be used to split the classification into data for
 #'   each taxon before matching. If `class_sep` is `NULL`, each match of
 #'   `class_regex` defines a taxon in the classification.
+#' @param class_reversed If `TRUE`, then classifications go from specific to general.
+#' For example: `Abditomys latidens : Muridae : Rodentia : Mammalia : Chordata`.
 #' @param include_match (`logical` of length 1) If `TRUE`, include the part of
 #'   the input matched by `class_regex` in the output object.
 #' @param mappings (named `character`) This defines how the taxonomic
@@ -75,8 +77,9 @@
 #' @param named_by_rank (`TRUE`/`FALSE`) If  `TRUE` and the input is a table
 #'   with columns named by ranks or a list of vectors with each vector named by
 #'   ranks, include that rank info in the output object, so it can be accessed
-#'   by `out$taxon_ranks()`. Cannot be used with the `sep`, `class_regex`, or
-#'   `class_key` options.
+#'   by `out$taxon_ranks()`. If `TRUE`, taxa with different ranks, but the same
+#'   name and location in the taxonomy, will be considered different taxa.
+#'   Cannot be used with the `sep`, `class_regex`, or `class_key` options.
 #'
 #' @family parsers
 #'
@@ -182,6 +185,7 @@
 parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
                            class_sep = ";", sep_is_regex = FALSE,
                            class_key = "taxon_name", class_regex = "(.*)",
+                           class_reversed = FALSE,
                            include_match = TRUE,
                            mappings = c(), include_tax_data = TRUE,
                            named_by_rank = FALSE) {
@@ -259,6 +263,11 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
   # Remove white space
   parsed_tax <- lapply(parsed_tax, trimws)
 
+  # Reverse order of taxa in classifications
+  if (class_reversed) {
+    parsed_tax <- lapply(parsed_tax, rev)
+  }
+
   # Check for NAs in input
   na_indexes <- which(vapply(parsed_tax, function(x) any(is.na(x)), logical(1)))
   if (length(na_indexes) > 0) {
@@ -295,6 +304,7 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
       stats::setNames(x[[which(class_key == "taxon_name") + 1]],
                       x[[which(class_key == "taxon_rank") + 1]])
     })
+    named_by_rank <- TRUE
   } else if (named_by_rank)  {
     parsed_tax <- lapply(taxon_info, function(x) {
       stats::setNames(x[[which(class_key == "taxon_name") + 1]],
@@ -320,14 +330,7 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
   names(taxon_info) <- c("match", taxon_info_colnames)
 
   # Create taxmap object
-  hier_objs <- lapply(parsed_tax, function(x) {
-    output <- hierarchy()
-    output$taxa <- lapply(seq_len(length(x)), function(i) {
-      taxon(x[i], rank = names(x[i]))
-    })
-    return(output)
-  })
-  output <- taxmap(.list = hier_objs)
+  output <- taxmap(.list = parsed_tax, named_by_rank = named_by_rank)
 
   # Add taxon ids to extracted info and add to data
   if (ncol(taxon_info) > 2) {
@@ -405,10 +408,9 @@ parse_tax_data <- function(tax_data, datasets = list(), class_cols = 1,
 
 #' Convert one or more data sets to taxmap
 #'
-#'
 #' Looks up taxonomic data from NCBI sequence IDs, taxon IDs, or taxon names
-#' that are present in a dataset. Also can incorporate additional associated
-#' datasets.
+#' that are present in a table, list, or vector. Also can incorporate additional
+#' associated datasets.
 #'
 #' @param tax_data A table, list, or vector that contain sequence IDs, taxon
 #'   IDs, or taxon names.
@@ -909,6 +911,8 @@ get_sort_var <- function(data, var) {
 #'   `"info"` can be used multiple times. Each term must be one of those
 #'   described below:
 #'   * `taxon_name`: The name of a taxon. Not necessarily unique.
+#'   * `taxon_rank`: The rank of the taxon. This will be used to add rank info
+#'   into the output object that can be accessed by `out$taxon_ranks()`.
 #'   * `info`: Arbitrary taxon info you want included in the output. Can be used
 #'   more than once.
 #' @param class_regex (`character` of length 1)
@@ -1026,7 +1030,7 @@ extract_tax_data <- function(tax_data, key, regex, class_key = "taxon_name",
   # Complain about failed matches
   failed <- which(apply(is.na(parsed_input), MARGIN = 1, FUN = all))
   if (length(failed) > 0) {
-    warning(paste0("The following input indexes failed to match the regex supplied:\n",
+    warning(paste0("The following ", length(failed), " input indexes failed to match the regex supplied:\n",
                    limited_print(failed, type = "silent")), call. = FALSE)
     parsed_input <- parsed_input[-failed, ]
   }
@@ -1117,7 +1121,7 @@ validate_regex_key_pair <- function(regex, key, multiple_allowed) {
   key_var_name <- deparse(substitute(key))
 
   # Check that the keys used are valid
-  allowed <- c("taxon_id", "taxon_name", "info", "class", "seq_id", "fuzzy_name")
+  allowed <- c("taxon_id", "taxon_name", "info", "class", "seq_id", "fuzzy_name", "taxon_rank")
   invalid_keys <- key[! key %in% allowed]
   if (length(invalid_keys) > 0) {
     stop(paste0('Invalid key value "', invalid_keys[1], '" given.\n',

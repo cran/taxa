@@ -6,8 +6,8 @@
 \usage{
 parse_tax_data(tax_data, datasets = list(), class_cols = 1,
   class_sep = ";", sep_is_regex = FALSE, class_key = "taxon_name",
-  class_regex = "(.*)", include_match = TRUE, mappings = c(),
-  include_tax_data = TRUE, named_by_rank = FALSE)
+  class_regex = "(.*)", class_reversed = FALSE, include_match = TRUE,
+  mappings = c(), include_tax_data = TRUE, named_by_rank = FALSE)
 }
 \arguments{
 \item{tax_data}{A table, list, or vector that contains the names of taxa that
@@ -70,6 +70,9 @@ the information must be specified using the \code{class_key} argument. The
 each taxon before matching. If \code{class_sep} is \code{NULL}, each match of
 \code{class_regex} defines a taxon in the classification.}
 
+\item{class_reversed}{If \code{TRUE}, then classifications go from specific to general.
+For example: \code{Abditomys latidens : Muridae : Rodentia : Mammalia : Chordata}.}
+
 \item{include_match}{(\code{logical} of length 1) If \code{TRUE}, include the part of
 the input matched by \code{class_regex} in the output object.}
 
@@ -96,13 +99,14 @@ as a dataset, like those in \code{datasets}.}
 \item{named_by_rank}{(\code{TRUE}/\code{FALSE}) If  \code{TRUE} and the input is a table
 with columns named by ranks or a list of vectors with each vector named by
 ranks, include that rank info in the output object, so it can be accessed
-by \code{out$taxon_ranks()}. Cannot be used with the \code{sep}, \code{class_regex}, or
-\code{class_key} options.}
+by \code{out$taxon_ranks()}. If \code{TRUE}, taxa with different ranks, but the same
+name and location in the taxonomy, will be considered different taxa.
+Cannot be used with the \code{sep}, \code{class_regex}, or \code{class_key} options.}
 }
 \description{
-Parses taxonomic information and associated data and stores it in a
-\code{\link[taxa:taxmap]{taxa::taxmap()}} object. \href{https://en.wikipedia.org/wiki/Taxonomy_(biology)#Classifying_organisms}{Taxonomic classifications}
-must be present somewhere in the first input.
+Reads taxonomic information and associated data in tables, lists, and vectors
+and stores it in a \code{\link[taxa:taxmap]{taxa::taxmap()}} object. \href{https://en.wikipedia.org/wiki/Taxonomy_(biology)#Classifying_organisms}{Taxonomic classifications}
+must be present.
 }
 \examples{
  # Read a vector of classifications
