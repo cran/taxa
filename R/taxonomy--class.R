@@ -142,10 +142,10 @@ Taxonomy <- R6::R6Class(
     # Looks for names of data in a expression for use with NSE
     names_used = function(...) {
       decompose <- function(x) {
-        if (class(x) %in% c("call", "(", "{")) {
+        if (class(x) %in% c("call", "(", "{") && x[[1]] != "$") {
           return(lapply(1:length(x), function(i) decompose(x[[i]])))
         } else {
-          return(as.character(x))
+          return(deparse(x))
         }
       }
 
@@ -162,19 +162,23 @@ Taxonomy <- R6::R6Class(
 
     # --------------------------------------------------------------------------
     # Get data by name
-    get_data = function(name = NULL, ...) {
+    get_data = function(name = NULL, allow_external = TRUE, ...) {
       # Get default if name is NULL
       if (is.null(name)) {
         name = unique(self$all_names(...))
       }
 
-      # Check that names provided are valid
+      # Check that names provided are valid or an external object is used
       my_names <- self$all_names(...)
-      if (any(unknown <- !name %in% my_names)) {
-        stop(paste0("Cannot find the following data: ",
-                    paste0(name[unknown], collapse = ", "), "\n ",
-                    "Valid choices include: ",
-                    paste0(my_names, collapse = ", "), "\n "))
+      if (any(unknown <- ! name %in% my_names)) {
+        if (allow_external && (! is.null(obj_taxon_ids <- self$get_data_taxon_ids(name)))) {
+          return(name)
+        } else {
+          stop(paste0("Cannot find the following data: ",
+                      paste0(name[unknown], collapse = ", "), "\n ",
+                      "Valid choices include: ",
+                      paste0(my_names, collapse = ", "), "\n "))
+        }
       }
 
       # Check for ambiguous terms
@@ -1134,7 +1138,7 @@ Taxonomy <- R6::R6Class(
       if (length(unused_ranks) > 0) {
         message('The following ranks will not be included because the order cannot be determined:\n',
                 limited_print(unused_ranks, prefix = "  ", type = "silent"),
-                'See the section on the `use_ranks` option in ?taxonomy_table to if you want to change which ranks are used.')
+                'See the section on the `use_ranks` option in ?taxonomy_table if you want to change which ranks are used.')
       }
 
       # Make table
@@ -1144,7 +1148,7 @@ Taxonomy <- R6::R6Class(
       # Add taxon ID column
       if (add_id_col) {
         output <- cbind(data.frame(stringsAsFactors = FALSE,
-                                   taxon_ids = self$taxon_ids()[subset]),
+                                   taxon_id = self$taxon_ids()[subset]),
                         output)
       }
 

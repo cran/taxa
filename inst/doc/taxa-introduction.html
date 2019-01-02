@@ -12,14 +12,14 @@
 
 <meta name="author" content="Scott Chamberlain and Zachary Foster" />
 
-<meta name="date" content="2018-08-07" />
+<meta name="date" content="2018-12-20" />
 
 <title>Introduction to the taxa package</title>
 
 
 
 <style type="text/css">code{white-space: pre;}</style>
-<style type="text/css">
+<style type="text/css" data-origin="pandoc">
 div.sourceCode { overflow-x: auto; }
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
@@ -55,7 +55,29 @@ code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
 code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
 </style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 
 
 
@@ -70,7 +92,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Introduction to the taxa package</h1>
 <h4 class="author"><em>Scott Chamberlain and Zachary Foster</em></h4>
-<h4 class="date"><em>2018-08-07</em></h4>
+<h4 class="date"><em>2018-12-20</em></h4>
 
 
 
@@ -811,9 +833,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 3 x 4</span>
 <span class="co">#&gt;         taxon_id name   n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;   &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 m        tiger      4. TRUE     </span>
-<span class="co">#&gt;       2 o        mole       4. FALSE    </span>
-<span class="co">#&gt;       3 r        potato     0. FALSE    </span>
+<span class="co">#&gt;       1 m        tiger       4 TRUE     </span>
+<span class="co">#&gt;       2 o        mole        4 FALSE    </span>
+<span class="co">#&gt;       3 r        potato      0 FALSE    </span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 3 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... r. 63604565-0406-46[truncated]</span>
 <span class="co">#&gt;     foods: a list of 3 items named by taxa:</span>
@@ -832,9 +854,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 6 x 4</span>
 <span class="co">#&gt;         taxon_id name  n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;  &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 m        tiger     4. TRUE     </span>
-<span class="co">#&gt;       2 d        cat       4. FALSE    </span>
-<span class="co">#&gt;       3 o        mole      4. FALSE    </span>
+<span class="co">#&gt;       1 m        tiger      4 TRUE     </span>
+<span class="co">#&gt;       2 d        cat        4 FALSE    </span>
+<span class="co">#&gt;       3 o        mole       4 FALSE    </span>
 <span class="co">#&gt;       # ... with 3 more rows</span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 6 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... r. 63604565-0406-46[truncated]</span>
@@ -852,8 +874,8 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 2 x 4</span>
 <span class="co">#&gt;         taxon_id name  n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;  &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 m        tiger     4. TRUE     </span>
-<span class="co">#&gt;       2 p        human     2. TRUE     </span>
+<span class="co">#&gt;       1 m        tiger      4 TRUE     </span>
+<span class="co">#&gt;       2 p        human      2 TRUE     </span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 6 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... r. 63604565-0406-46[truncated]</span>
 <span class="co">#&gt;     foods: a list of 6 items named by taxa:</span>
@@ -870,8 +892,8 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 2 x 4</span>
 <span class="co">#&gt;         taxon_id name  n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;  &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 m        tiger     4. TRUE     </span>
-<span class="co">#&gt;       2 p        human     2. TRUE     </span>
+<span class="co">#&gt;       1 m        tiger      4 TRUE     </span>
+<span class="co">#&gt;       2 p        human      2 TRUE     </span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 2 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... p. 9fae30cd-fb59-4a[truncated]</span>
 <span class="co">#&gt;     foods: a list of 2 items named by taxa:</span>
@@ -893,9 +915,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 4 x 4</span>
 <span class="co">#&gt;         taxon_id name   n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;   &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 m        tiger      4. TRUE     </span>
-<span class="co">#&gt;       2 i        cat        4. FALSE    </span>
-<span class="co">#&gt;       3 g        tomato     0. FALSE    </span>
+<span class="co">#&gt;       1 m        tiger       4 TRUE     </span>
+<span class="co">#&gt;       2 i        cat         4 FALSE    </span>
+<span class="co">#&gt;       3 g        tomato      0 FALSE    </span>
 <span class="co">#&gt;       # ... with 1 more row</span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 4 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... g. 63604565-0406-46[truncated]</span>
@@ -913,9 +935,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 6 x 4</span>
 <span class="co">#&gt;         taxon_id name  n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;  &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 m        tiger     4. TRUE     </span>
-<span class="co">#&gt;       2 i        cat       4. FALSE    </span>
-<span class="co">#&gt;       3 b        mole      4. FALSE    </span>
+<span class="co">#&gt;       1 m        tiger      4 TRUE     </span>
+<span class="co">#&gt;       2 i        cat        4 FALSE    </span>
+<span class="co">#&gt;       3 b        mole       4 FALSE    </span>
 <span class="co">#&gt;       # ... with 3 more rows</span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 6 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... g. 63604565-0406-46[truncated]</span>
@@ -938,9 +960,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 6 x 6</span>
 <span class="co">#&gt;         taxon_id name  n_legs dangerous new_col newer_col</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;  &lt;dbl&gt; &lt;lgl&gt;     &lt;chr&gt;   &lt;chr&gt;    </span>
-<span class="co">#&gt;       1 m        tiger     4. TRUE      Im new  Im newer!</span>
-<span class="co">#&gt;       2 n        cat       4. FALSE     Im new  Im newer!</span>
-<span class="co">#&gt;       3 o        mole      4. FALSE     Im new  Im newer!</span>
+<span class="co">#&gt;       1 m        tiger      4 TRUE      Im new  Im newer!</span>
+<span class="co">#&gt;       2 n        cat        4 FALSE     Im new  Im newer!</span>
+<span class="co">#&gt;       3 o        mole       4 FALSE     Im new  Im newer!</span>
 <span class="co">#&gt;       # ... with 3 more rows</span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 6 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... r. 63604565-0406-46[truncated]</span>
@@ -984,9 +1006,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 6 x 2</span>
 <span class="co">#&gt;         taxon_id n_legs</span>
 <span class="co">#&gt;         &lt;chr&gt;     &lt;dbl&gt;</span>
-<span class="co">#&gt;       1 m            4.</span>
-<span class="co">#&gt;       2 n            4.</span>
-<span class="co">#&gt;       3 o            4.</span>
+<span class="co">#&gt;       1 m             4</span>
+<span class="co">#&gt;       2 n             4</span>
+<span class="co">#&gt;       3 o             4</span>
 <span class="co">#&gt;       # ... with 3 more rows</span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 6 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... r. 63604565-0406-46[truncated]</span>
@@ -1028,9 +1050,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 6 x 4</span>
 <span class="co">#&gt;         taxon_id name  n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;  &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 m        tiger     4. TRUE     </span>
-<span class="co">#&gt;       2 n        cat       4. FALSE    </span>
-<span class="co">#&gt;       3 o        mole      4. FALSE    </span>
+<span class="co">#&gt;       1 m        tiger      4 TRUE     </span>
+<span class="co">#&gt;       2 n        cat        4 FALSE    </span>
+<span class="co">#&gt;       3 o        mole       4 FALSE    </span>
 <span class="co">#&gt;       # ... with 3 more rows</span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 6 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... r. 63604565-0406-46[truncated]</span>
@@ -1047,9 +1069,9 @@ my_taxmap &lt;-<span class="st"> </span><span class="kw">taxmap</span>(tiger, ca
 <span class="co">#&gt;       # A tibble: 6 x 4</span>
 <span class="co">#&gt;         taxon_id name  n_legs dangerous</span>
 <span class="co">#&gt;         &lt;chr&gt;    &lt;fct&gt;  &lt;dbl&gt; &lt;lgl&gt;    </span>
-<span class="co">#&gt;       1 n        cat       4. FALSE    </span>
-<span class="co">#&gt;       2 p        human     2. TRUE     </span>
-<span class="co">#&gt;       3 o        mole      4. FALSE    </span>
+<span class="co">#&gt;       1 n        cat        4 FALSE    </span>
+<span class="co">#&gt;       2 p        human      2 TRUE     </span>
+<span class="co">#&gt;       3 o        mole       4 FALSE    </span>
 <span class="co">#&gt;       # ... with 3 more rows</span>
 <span class="co">#&gt;     phylopic_ids: a named vector of 'character' with 6 items</span>
 <span class="co">#&gt;        m. e148eabb-f138-43[truncated] ... r. 63604565-0406-46[truncated]</span>

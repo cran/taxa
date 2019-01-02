@@ -324,6 +324,12 @@ test_that("Names in invalid expressions can be found by NSE", {
                                            aslkadsldsa)))
 })
 
+test_that("Names of varaibles referred to by full $ path are not returned", {
+  expect_equal(length(test_obj$names_used(data$abund$count)), 0)
+  expect_equal(length(test_obj$names_used(data$count)), 0)
+  expect_equal(length(test_obj$names_used(count)), 1)
+})
+
 #### get_data
 
 test_that("NSE values can be found", {
@@ -408,12 +414,19 @@ test_that("Mapping simplification between observations and the edge list works",
   expect_equal(obs(test_obj, "info", simplify = TRUE), 1:6)
 })
 
-test_that("Mapping observations in external tables", {
+test_that("Mapping observations in external variables", {
   external_table <- data.frame(taxon_id = c("p", "n"),
                                my_name = c("Joe", "Fluffy"))
   expect_equal(eval(substitute(obs(test_obj, external_table)$`b`)), c(2, 1))
+
   external_table <- data.frame(my_name = c("Joe", "Fluffy"))
   expect_error(eval(substitute(obs(test_obj, external_table))), 'no "taxon_id" column')
+
+  extern_vec <- c(p = "Joe", n = "Fluffy")
+  expect_equal(eval(substitute(obs(test_obj, extern_vec)$`b`)), c(2, 1))
+
+  extern_vec <- c("Joe", "Fluffy")
+  expect_error(eval(substitute(obs(test_obj, extern_vec))), 'no taxon ids')
 })
 
 test_that("Mapping observations when there are multiple obs per taxon", {
@@ -681,8 +694,6 @@ test_that("New tables and vectors can be made",  {
   expect_equal(length(result$data$new_table), 0)
 
  # Invlaid: inputs of mixed lengths
-  expect_error(mutate_obs(test_obj, "new_table", a = 1, b = character(0)),
-               "must be length 1, not 0")
   expect_error(mutate_obs(test_obj, "new_table", a = 1:3, b = 2:8),
                "Cannot make a new table out of multiple values of unequal length")
 

@@ -1,6 +1,18 @@
 taxa 0.3.1
 ==========
 
+### Bug fixes
+
+* Parsers now correclty handle zero-length inputs ([issue #185](https://github.com/ropensci/taxa/issues/185)).
+* `taxonomy_table` option `add_id_col` now works ([issue #191](https://github.com/ropensci/taxa/issues/191)).
+
+### Improvements
+
+* The `parse_tax_data` option `class_col` now accepts negative column indexes, meaning "all other columns".
+
+taxa 0.3.1
+==========
+
 ### New features
 
 * Added the `taxonomy_table` function that converts the information in a `taxmap` or `taxonomy` object into a table with taxa as rows and ranks as columns.

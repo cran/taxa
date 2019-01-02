@@ -16,6 +16,12 @@
 init_taxmap_data <- function(self, data, input_ids, assume_equal = TRUE) {
 
   process_one <- function(x, name) {
+
+    # Check for zero-length inputs
+    if (length_of_thing(x) <= 0) {
+      return(x)
+    }
+
     if (is.data.frame(x)) {
       # Convert all data.frames to tibbles
       if  (! tibble::is_tibble(x)) {
@@ -170,8 +176,8 @@ all_functions <- function() {
 #' @keywords internal
 check_taxmap_data <- function(obj) {
   #  Check that column names are not the names of functions
-  data_names <- all_names(obj, funcs = FALSE, builtin_funcs = FALSE)
-  suspect_names <- data_names[data_names %in% all_functions()]
+  # data_names <- all_names(obj, funcs = FALSE, builtin_funcs = FALSE)
+  # suspect_names <- data_names[data_names %in% all_functions()]
   # if (length(suspect_names) > 0) {
   #   warning(paste0("Naming table columns/vectors/lists the same name as ",
   #                  "functions can sometimes interfere with non-standard ",
