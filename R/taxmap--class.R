@@ -135,10 +135,11 @@ Taxmap <- R6::R6Class(
       is_table <- vapply(self$data, is.data.frame, logical(1))
       if (tables && length(self$data[is_table]) > 0) {
         table_col_names <- unlist(lapply(self$data[is_table], colnames))
-        names(table_col_names) <- paste0("data$",
+        names(table_col_names) <- paste0("data[['",
                                          rep(names(self$data[is_table]),
                                              vapply(self$data[is_table],
-                                                    ncol, integer(1))))
+                                                    ncol, integer(1))),
+                                         "']]")
         table_col_names <- table_col_names[table_col_names != "taxon_id"]
         output <- c(output, table_col_names)
       }
@@ -171,7 +172,9 @@ Taxmap <- R6::R6Class(
 
       # Add the name to the name of the name and return
       names(output) <- paste0(names(output),
-                              ifelse(names(output) == "", "", "$"), output)
+                              ifelse(names(output) == "", "", "[['"),
+                              output,
+                              ifelse(names(output) == "", "", "']]"))
       return(output)
     },
 
@@ -196,7 +199,7 @@ Taxmap <- R6::R6Class(
                                    recursive = recursive,
                                    include_input = TRUE,
                                    value = "taxon_indexes")
-        #unname is neede for some reason.. something to look into...
+        #unname is needed for some reason.. something to look into...
       } else {
         my_subtaxa <- subset
       }
@@ -212,11 +215,16 @@ Taxmap <- R6::R6Class(
       # Look up values
       if (!is.null(value)) {
         possible_values <- self$get_data(value)[[1]]
-        if (is.null(names(possible_values))) {
-          output <- lapply(output, function(i) possible_values[i])
-        } else {
-          output <- lapply(output, function(i) possible_values[self$get_data_taxon_ids(data)[i]])
+        if (length(possible_values) != length(obs_taxon_ids)) {
+          stop(call. = FALSE,
+               'The value "', value, '" is not the same length as the data set "', data, '".')
         }
+        if (! is.null(names(possible_values)) && any(names(possible_values) != names(obs_taxon_ids))) {
+          stop(call. = FALSE,
+               'The value "', value, '" is in a different order than the data set "', data,
+               '" according to taxon IDs.')
+        }
+        output <- lapply(output, function(i) possible_values[i])
       }
 
       # Reduce dimensionality

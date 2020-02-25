@@ -51,6 +51,21 @@ Taxonomy <- R6::R6Class(
              character(1))
     },
 
+
+    # --------------------------------------------------------------------------
+    #  Set taxon names
+    set_taxon_names = function(value) {
+      if (length(value) !=  length(self$taxa))
+      {
+        stop(call. = FALSE, 'New taxon names must be of the same length as the number of taxa and in the same order as taxa.')
+      }
+
+      for (i in seq_len(length(self$taxa))) {
+        self$taxa[[i]]$name$name <- as.character(value[[i]])
+      }
+    },
+
+
     # --------------------------------------------------------------------------
     # Return the taxon ranks in a taxonomy() or taxmap() object.
     # They are in the order taxa appear in the edge list.
@@ -64,6 +79,32 @@ Taxonomy <- R6::R6Class(
                }
              },
              character(1))
+    },
+
+    # --------------------------------------------------------------------------
+    #  Set taxon names
+    set_taxon_ranks = function(value) {
+      if (length(value) !=  length(self$taxa))
+      {
+        stop(call. = FALSE, 'New taxon ranks must be of the same length as the number of taxa and in the same order as taxa.')
+      }
+
+      for (i in seq_len(length(self$taxa))) {
+        self$taxa[[i]]$rank$name <- as.character(value[[i]])
+      }
+    },
+
+    # --------------------------------------------------------------------------
+    #  Set taxon authorities
+    set_taxon_auths = function(value) {
+      if (length(value) !=  length(self$taxa))
+      {
+        stop(call. = FALSE, 'New taxon authorities must be of the same length as the number of taxa and in the same order as taxa.')
+      }
+
+      for (i in seq_len(length(self$taxa))) {
+        self$taxa[[i]]$authority <- as.character(value[[i]])
+      }
     },
 
     # --------------------------------------------------------------------------
@@ -142,7 +183,7 @@ Taxonomy <- R6::R6Class(
     # Looks for names of data in a expression for use with NSE
     names_used = function(...) {
       decompose <- function(x) {
-        if (class(x) %in% c("call", "(", "{") && x[[1]] != "$") {
+        if (any(class(x) %in% c("call", "(", "{")) && x[[1]] != "$") {
           return(lapply(1:length(x), function(i) decompose(x[[i]])))
         } else {
           return(deparse(x))
@@ -156,7 +197,7 @@ Taxonomy <- R6::R6Class(
         names_used <- unlist(lapply(1:length(expressions),
                                     function(i) decompose(expressions[[i]])))
         my_names <- self$all_names()
-        return(my_names[my_names %in% names_used])
+        return(my_names[my_names %in% names_used & my_names == make.names(my_names)])
       }
     },
 
@@ -206,9 +247,9 @@ Taxonomy <- R6::R6Class(
       #   This only applies to taxmap objects
       output[] <- lapply(seq_len(length(output)), function(index) {
         data_location <- names(name[index])
-        if (startsWith(data_location, "data$")) {
+        if (startsWith(data_location, "data[['")) {
           data_name <- strsplit(data_location,
-                                split =  "$", fixed = TRUE)[[1]][2]
+                                split =  "'", fixed = TRUE)[[1]][2]
           return(stats::setNames(output[[index]],
                                  self$get_data_taxon_ids(data_name)))
         } else {
