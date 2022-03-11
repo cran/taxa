@@ -298,6 +298,11 @@ names.taxa_taxon <- function(x) {
 
 #' @export
 `[<-.taxa_taxon` <- function(x, i, j, value) {
+  # If value can be cast to taxon with rank info, then update ranks
+  if (is_taxon(value)) {
+    tax_rank(x)[i] <- tax_rank(value)
+  }
+
   # NOTE: This is a hack to make a vctrs rcrd class work with names.
   #   At the time of writing, names are not supported.
   #   It should be unnecessary eventually
@@ -651,7 +656,7 @@ is.na.taxa_taxon <- function(x) {
 
 #' @export
 as_data_frame.taxa_taxon <- function(x, row.names = NULL, optional = FALSE, ...,
-                                          stringsAsFactors = default.stringsAsFactors()) {
+                                          stringsAsFactors = FALSE) {
   cbind(
     data.frame(tax_name = as.character(x), row.names = row.names, stringsAsFactors = stringsAsFactors, ...),
     as_data_frame(tax_rank(x), row.names = row.names, stringsAsFactors = stringsAsFactors, ...),

@@ -336,11 +336,10 @@ format.taxa_taxonomy <- function(x, ...) {
 obj_print_data.taxa_taxonomy <- function(x, ...) {
   # Dont print anything if nothing to print
   if (length(x) == 0) {
-    return()
+    return(invisible(x))
   }
   tree <- printed_taxonomy(x, color = TRUE)
-  class(tree) <- unique(c("tree", "character"))
-  print(tree)
+  cat(tree, sep = '\n')
   invisible(x)
 }
 
@@ -1021,7 +1020,7 @@ n_supertaxa.taxa_taxonomy <- function(x, subset = NULL, max_depth = NULL, includ
 
 #' @export
 as_data_frame.taxa_taxonomy <- function(x, row.names = NULL, optional = FALSE, ...,
-                                        stringsAsFactors = default.stringsAsFactors()) {
+                                        stringsAsFactors = FALSE) {
   out <- as_data_frame(as_taxon(x))
   cbind(supertaxon = vctrs::field(x, 'supertaxa'), out)
 }
